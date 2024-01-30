@@ -15,9 +15,6 @@ import java.util.ArrayList;
  * invalid.
  *
  * The {@link #peek(String...)} and {@link #match(String...)} functions are * helpers you need to use, they will make the implementation a lot easier. */
-import java.util.List;
-import java.util.ArrayList;
-
 public final class Lexer {
 
     private final CharStream chars;
@@ -29,7 +26,7 @@ public final class Lexer {
     private static String numericDigit = "[0-9]";
     private static String decimalPoint = "\\.";    
 
-    private static String escapeStart = "\\";
+    private static String escapeStart = "\\\\";
     private static String escapeChars = "[bnrt'\\\"\\\\]";
 
     private static String characterQuote = "'";
@@ -98,7 +95,7 @@ public final class Lexer {
             match("0");
             return chars.emit(Token.Type.INTEGER);
         }
-        else if (peek("-", "0") && !peek("-", "0", decimalPoint, numericDigit)) { // If -0 not followed part of decimal expression
+        else if (peek("-", "0") && !peek("-", "0", decimalPoint, numericDigit)) { // If -0 is not part of decimal expression
             throw new ParseException("Incomplete Decimal Expression", chars.index);
         }
 
@@ -116,12 +113,12 @@ public final class Lexer {
     }
 
     public Token lexCharacter() {
-        match("'");
-        if(peek("\\\\")){
+        match(characterQuote);
+        if(peek(escapeStart)){
             lexEscape();
         }
         else{
-            if(!peek("'")) {
+            if(!peek(characterQuote)) {
                 match(characterLiterals);
             }
             else{
@@ -130,11 +127,11 @@ public final class Lexer {
 
         }
 
-        if(!peek("'")){
+        if(!peek(characterQuote)){
             throw new ParseException("Unterminated String", chars.index);
         }
         else{
-            match("'");
+            match(characterQuote);
             Token.Type detType = Token.Type.CHARACTER;
             return chars.emit(detType);
         }
@@ -146,11 +143,11 @@ public final class Lexer {
     }
 
     public void lexEscape() {
-        if(!peek("\\\\", escapeChars)){ // If the lexEscape fails, then throw as exception
+        if(!peek(escapeStart, escapeChars)){ // If the lexEscape fails, then throw as exception
             throw new ParseException("Invalid Escape Sequence", chars.index);
         }
         else{
-            match("\\\\", escapeChars);
+            match(escapeStart, escapeChars);
         }        
     }
 
