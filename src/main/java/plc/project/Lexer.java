@@ -120,11 +120,17 @@ public final class Lexer {
             lexEscape();
         }
         else{
-            match(characterLiterals);
+            if(!peek("'")) {
+                match(characterLiterals);
+            }
+            else{
+                throw new ParseException("Empty Character not Permited", chars.index);
+            }
+
         }
 
         if(!peek("'")){
-            throw new ParseException("Unterminated Character Literal", chars.index);
+            throw new ParseException("Unterminated String", chars.index);
         }
         else{
             match("'");
@@ -132,6 +138,7 @@ public final class Lexer {
             return chars.emit(detType);
         }
     }
+
 
     public Token lexString() {
         throw new UnsupportedOperationException(); //TODO
