@@ -22,6 +22,7 @@ public class LexerTests {
         return Stream.of(
                 Arguments.of("Alphabetic", "getName", true),
                 Arguments.of("Alphanumeric", "thelegend27", true),
+
                 Arguments.of("Leading Hyphen", "-five", false),
                 Arguments.of("Leading Digit", "1fish2fish3fishbluefish", false)
         );
@@ -38,6 +39,7 @@ public class LexerTests {
                 Arguments.of("Single Digit", "1", true),
                 Arguments.of("Multiple Digits", "12345", true),
                 Arguments.of("Negative", "-1", true),
+
                 Arguments.of("Leading Zero", "01", false)
         );
     }
@@ -52,6 +54,23 @@ public class LexerTests {
         return Stream.of(
                 Arguments.of("Multiple Digits", "123.456", true),
                 Arguments.of("Negative Decimal", "-1.0", true),
+                Arguments.of("One", "1.0", true),
+                Arguments.of("Zero", "0.0", true),
+                Arguments.of("Negative One", "-1.0", true),
+                Arguments.of("One Hundred and Twenty Three", "123.0", true),
+                Arguments.of("Negative One Hundred and Twenty Three", "-123.0", true),
+                Arguments.of("Fifteen Hundreths", "0.15", true),
+                Arguments.of("Negative Fifteen Hundreths", "-0.15", true),
+                Arguments.of("Negative Zero", "-0.0", true),
+
+                Arguments.of("No Decimal", "1", false),
+                Arguments.of("No Integer", ".1", false),
+                Arguments.of("No Integer with Trailing 0", ".0", false),
+                Arguments.of("Integer with Trailing Decimal Point", "1.", false),
+                Arguments.of("Zero with Trailing Decimal Point", "0.", false),
+                Arguments.of("Leading Zeroes", "0123.0", false),
+                Arguments.of("Negative Leading Zeroes", "-0123.0", false),
+                Arguments.of("Negative Decimal No Integer", "-.15", false),
                 Arguments.of("Trailing Decimal", "1.", false),
                 Arguments.of("Leading Decimal", ".5", false)
         );
@@ -99,8 +118,31 @@ public class LexerTests {
         return Stream.of(
                 Arguments.of("Character", "(", true),
                 Arguments.of("Comparison", "!=", true),
+                Arguments.of("Comparison 2", "==", true),
+                Arguments.of("And Operator", "&&", true),
+                Arguments.of("Or Operator", "||", true),
+                Arguments.of("Bitwise And Operator", "&", true),
+                Arguments.of("Bitwise Or Operator", "|", true),
+                Arguments.of("Semicolon", ";", true),
+                Arguments.of("Minus Sign", "-", true),
+                Arguments.of("Plus Sign", "+", true),
+
+                Arguments.of("Triple Equals", "===", false),
+                Arguments.of("Triple Not Equals", "!==", false),
+                Arguments.of("Double Minus Sign", "--", false),
+                Arguments.of("Not And", "!&&", false),
+                Arguments.of("Not Or", "!||", false),
+                Arguments.of("Identifier Character", "a", false),
+                Arguments.of("At Symbol", "@", false),
+                Arguments.of("Digit", "1", false),
+                Arguments.of("Character Quote", "'", false),
+                Arguments.of("String Quote", "\"", false),
                 Arguments.of("Space", " ", false),
-                Arguments.of("Tab", "\t", false)
+                Arguments.of("Tab", "\t", false),
+                Arguments.of("Newline", "\n", false),
+                Arguments.of("Carriage Return", "\r", false),
+                Arguments.of("Backspace", "\b", false)
+
         );
     }
 
@@ -125,6 +167,14 @@ public class LexerTests {
                         new Token(Token.Type.STRING, "\"Hello, World!\"", 6),
                         new Token(Token.Type.OPERATOR, ")", 21),
                         new Token(Token.Type.OPERATOR, ";", 22)
+                )),
+                Arguments.of("Leading Hyphen", "-five", Arrays.asList(
+                        new Token(Token.Type.OPERATOR, "-", 0),
+                        new Token(Token.Type.IDENTIFIER, "five", 1)
+                )),
+                Arguments.of("Leading Digits", "1fish2fish3fishbluefish", Arrays.asList(
+                        new Token(Token.Type.INTEGER, "1", 0),
+                        new Token(Token.Type.IDENTIFIER, "fish2fish3fishbluefish", 1)
                 ))
         );
     }
