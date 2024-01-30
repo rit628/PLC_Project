@@ -23,22 +23,19 @@ public final class Lexer {
     private static String identifierStart = "@|[A-Za-z]";
     private static String identifierEnd = "[A-Za-z0-9_-]";
 
-    private static String numericStart = "[0-9]|-?";
     private static String numericDigit = "[0-9]";
     private static String decimalPoint = "\\.";    
 
     private static String escapeStart = "\\";
-    private static String escapeChars = "[bnrt'\"\\]";
+    private static String escapeChars = "[bnrt'\\\"\\\\]";
 
     private static String characterQuote = "'";
-    private static String characterLiterals = "[^'\n\r\\]"; // Or escapes
+    private static String characterLiterals = "[^'\\n\\r\\\\]"; // Or escapes
 
-    private static String stringQuote = "\"";
-    private static String stringLiterals = "[^\"\n\r\\]"; // Or escapes
+    private static String stringQuote = "\\\"";
+    private static String stringLiterals = "[^\\\"\\n\\r\\\\]"; // Or escapes
 
-    private static String operatorStart = "[!=&|]"; // Or any other character
-
-    private static String whitespace = "[ \b\n\r\t]";
+    private static String whitespace = "[ \\u0008\\n\\r\\t]";
 
     public Lexer(String input) {
         chars = new CharStream(input);
@@ -69,7 +66,7 @@ public final class Lexer {
         if (peek(identifierStart)) {
             return lexIdentifier();
         }
-        else if (peek(numericStart)) {
+        else if (peek(numericDigit) || peek("-", numericDigit)) {
             return lexNumber();
         }
         else if (peek(characterQuote)) {
@@ -78,10 +75,9 @@ public final class Lexer {
         else if (peek(stringQuote)) {
             return lexString();
         }
-        else if (peek(operatorStart)) {
+        else {
             return lexOperator();
         }
-        throw new ParseException("Illegal Character.", chars.index);
     }
 
     public Token lexIdentifier() {
@@ -95,17 +91,12 @@ public final class Lexer {
             match("0");
             return chars.emit(Token.Type.INTEGER);
         }
-        else if (peek("-")) {
-            if (!peek("-", numericDigit)) { // If negative not followed by digit
-                throw new ParseException("Negative not followed by digit", chars.index);
-            }
-            if (peek("-", "0") && !peek("-", "0", decimalPoint, numericDigit)) { // If -0 not followed part of decimal expression
-                throw new ParseException("Incomplete Decimal Expression", chars.index);
-            }
+        else if (peek("-", "0") && !peek("-", "0", decimalPoint, numericDigit)) { // If -0 not followed part of decimal expression
+            throw new ParseException("Incomplete Decimal Expression", chars.index);
         }
 
         Token.Type deducedType = Token.Type.INTEGER;
-        match(numericStart);
+        match("[0-9]|-");
         while (match(numericDigit));   // Match all digits left of decimal place
 
         if (match(decimalPoint, numericDigit)) // Check if number is a decimal
@@ -130,7 +121,13 @@ public final class Lexer {
     }
 
     public Token lexOperator() {
-        throw new UnsupportedOperationException(); //TODO
+        if (match("!", "="));
+        else if (match("=", "="));
+        else if (match("&", "&"));
+        else if (match("\\|", "\\|"));
+        else if (match("\\|", "\\|"));
+        else {match(".");}
+        return chars.emit(Token.Type.OPERATOR);
     }
 
     /**
