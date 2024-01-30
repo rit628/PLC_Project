@@ -86,8 +86,15 @@ public class LexerTests {
         return Stream.of(
                 Arguments.of("Alphabetic", "\'c\'", true),
                 Arguments.of("Newline Escape", "\'\\n\'", true),
+                Arguments.of("Newline Escape", "\'\\b\'", true),
+                Arguments.of("Escaped Slash", "\'\\\\\'", true),
+
                 Arguments.of("Empty", "\'\'", false),
-                Arguments.of("Multiple", "\'abc\'", false)
+                Arguments.of("Triple Quote", "\'\'\'", false),
+                Arguments.of("Unclosed", "\'", false),
+                Arguments.of("Unclosed with letter", "\'a", false),
+                Arguments.of("Multiple", "\'abc\'", false),
+                Arguments.of("Unescaped Backslash", "\'\\\'", false)
         );
     }
 
@@ -175,6 +182,12 @@ public class LexerTests {
                 Arguments.of("Leading Digits", "1fish2fish3fishbluefish", Arrays.asList(
                         new Token(Token.Type.INTEGER, "1", 0),
                         new Token(Token.Type.IDENTIFIER, "fish2fish3fishbluefish", 1)
+                )),
+                Arguments.of("Example 2", "05 394 98.81", Arrays.asList(
+                        new Token(Token.Type.INTEGER, "0", 0),
+                        new Token(Token.Type.INTEGER, "5", 1),
+                        new Token(Token.Type.INTEGER, "394", 3),
+                    new Token(Token.Type.DECIMAL, "98.81", 7)
                 ))
         );
     }

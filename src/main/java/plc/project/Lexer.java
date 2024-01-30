@@ -15,6 +15,9 @@ import java.util.ArrayList;
  * invalid.
  *
  * The {@link #peek(String...)} and {@link #match(String...)} functions are * helpers you need to use, they will make the implementation a lot easier. */
+import java.util.List;
+import java.util.ArrayList;
+
 public final class Lexer {
 
     private final CharStream chars;
@@ -39,12 +42,14 @@ public final class Lexer {
 
     public Lexer(String input) {
         chars = new CharStream(input);
+
     }
 
     /**
      * Repeatedly lexes the input using {@link #lexToken()}, also skipping over
      * whitespace where appropriate.
      */
+
     public List<Token> lex() {
         List<Token> tokens = new ArrayList<Token>();
         while (chars.has(0)) {
@@ -110,7 +115,22 @@ public final class Lexer {
     }
 
     public Token lexCharacter() {
-        throw new UnsupportedOperationException(); //TODO
+        match("'");
+        if(peek("\\\\")){
+            lexEscape();
+        }
+        else{
+            match(characterLiterals);
+        }
+
+        if(!peek("'")){
+            throw new ParseException("Unterminated Character Literal", chars.index);
+        }
+        else{
+            match("'");
+            Token.Type detType = Token.Type.CHARACTER;
+            return chars.emit(detType);
+        }
     }
 
     public Token lexString() {
@@ -118,7 +138,12 @@ public final class Lexer {
     }
 
     public void lexEscape() {
-        throw new UnsupportedOperationException(); //TODO
+        if(!peek("\\\\", escapeChars)){ // If the lexEscape fails, then throw as exception
+            throw new ParseException("Invalid Escape Sequence", chars.index);
+        }
+        else{
+            match("\\\\", escapeChars);
+        }        
     }
 
     public Token lexOperator() {
