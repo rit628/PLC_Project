@@ -55,7 +55,8 @@ public final class Lexer {
         while (chars.has(0)) {
             while (match(whitespace));
             chars.skip();
-            tokens.add(lexToken());
+            if (chars.has(0))   // Ensures empty string is not passed to lexToken
+                tokens.add(lexToken());
         }
         return tokens;
     }
@@ -154,12 +155,16 @@ public final class Lexer {
     }
 
     public Token lexOperator() {
-        if (match("!", "="));
-        else if (match("=", "="));
-        else if (match("&", "&"));
-        else if (match("\\|", "\\|"));
-        else {match(".");}
-        return chars.emit(Token.Type.OPERATOR);
+        if (
+            match("!", "=") ||
+            match("=", "=") ||
+            match("&", "&") ||
+            match("\\|", "\\|") ||
+            match(".")
+        )
+            return chars.emit(Token.Type.OPERATOR);
+        
+        throw new ParseException("Illegal Character or End of Charstream", chars.index);
     }
 
     /**
