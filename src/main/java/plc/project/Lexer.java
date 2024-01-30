@@ -126,7 +126,6 @@ public final class Lexer {
         else if (match("=", "="));
         else if (match("&", "&"));
         else if (match("\\|", "\\|"));
-        else if (match("\\|", "\\|"));
         else {match(".");}
         return chars.emit(Token.Type.OPERATOR);
     }
