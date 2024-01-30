@@ -148,7 +148,8 @@ public class LexerTests {
                 Arguments.of("Tab", "\t", false),
                 Arguments.of("Newline", "\n", false),
                 Arguments.of("Carriage Return", "\r", false),
-                Arguments.of("Backspace", "\b", false)
+                Arguments.of("Backspace", "\b", false),
+                Arguments.of("Empty String", "", false)
 
         );
     }
@@ -183,11 +184,14 @@ public class LexerTests {
                         new Token(Token.Type.INTEGER, "1", 0),
                         new Token(Token.Type.IDENTIFIER, "fish2fish3fishbluefish", 1)
                 )),
-                Arguments.of("Example 2", "05 394 98.81", Arrays.asList(
+                Arguments.of("Spaced Integers", "05 394 98.81", Arrays.asList(
                         new Token(Token.Type.INTEGER, "0", 0),
                         new Token(Token.Type.INTEGER, "5", 1),
                         new Token(Token.Type.INTEGER, "394", 3),
                     new Token(Token.Type.DECIMAL, "98.81", 7)
+                )),
+                Arguments.of("Trailing Newline", "token\n", Arrays.asList(
+                        new Token(Token.Type.IDENTIFIER, "token", 0)
                 ))
         );
     }
