@@ -1,6 +1,7 @@
 package plc.project;
 
 import java.util.List;
+import java.util.ArrayList;
 
 /**
  * The lexer works through three main functions:
@@ -17,6 +18,27 @@ import java.util.List;
 public final class Lexer {
 
     private final CharStream chars;
+    
+    // Grammar in Scuffed Chomsky Normal Form
+    private static String identifierStart = "@|[A-Za-z]";
+    private static String identifierEnd = "[A-Za-z0-9_-]";
+
+    private static String numericStart = "[0-9]|-?";
+    private static String numericDigit = "[0-9]";
+    private static String decimalPoint = "\\.";    
+
+    private static String escapeStart = "\\";
+    private static String escapeChars = "[bnrt'\"\\]";
+
+    private static String characterQuote = "'";
+    private static String characterLiterals = "[^'\n\r\\]"; // Or escapes
+
+    private static String stringQuote = "\"";
+    private static String stringLiterals = "[^\"\n\r\\]"; // Or escapes
+
+    private static String operatorStart = "[!=&|]"; // Or any other character
+
+    private static String whitespace = "[ \b\n\r\t]";
 
     public Lexer(String input) {
         chars = new CharStream(input);
@@ -27,7 +49,12 @@ public final class Lexer {
      * whitespace where appropriate.
      */
     public List<Token> lex() {
-        throw new UnsupportedOperationException(); //TODO
+        List<Token> tokens = new ArrayList<Token>();
+        while (chars.has(0)) {
+            while (match(whitespace));
+            tokens.add(lexToken());
+        }
+        return tokens;
     }
 
     /**
@@ -39,15 +66,55 @@ public final class Lexer {
      * by {@link #lex()}
      */
     public Token lexToken() {
-        throw new UnsupportedOperationException(); //TODO
+        if (peek(identifierStart)) {
+            return lexIdentifier();
+        }
+        else if (peek(numericStart)) {
+            return lexNumber();
+        }
+        else if (peek(characterQuote)) {
+            return lexCharacter();
+        }
+        else if (peek(stringQuote)) {
+            return lexString();
+        }
+        else if (peek(operatorStart)) {
+            return lexOperator();
+        }
+        throw new ParseException("Illegal Character.", chars.index);
     }
 
     public Token lexIdentifier() {
-        throw new UnsupportedOperationException(); //TODO
+        match(identifierStart);
+        while (match(identifierEnd));
+        return chars.emit(Token.Type.IDENTIFIER);
     }
 
     public Token lexNumber() {
-        throw new UnsupportedOperationException(); //TODO
+        if (peek("0") && !peek("0", decimalPoint, numericDigit)) { // If leading zero is not part of a decimal expression
+            match("0");
+            return chars.emit(Token.Type.INTEGER);
+        }
+        else if (peek("-")) {
+            if (!peek("-", numericDigit)) { // If negative not followed by digit
+                throw new ParseException("Negative not followed by digit", chars.index);
+            }
+            if (peek("-", "0") && !peek("-", "0", decimalPoint, numericDigit)) { // If -0 not followed part of decimal expression
+                throw new ParseException("Incomplete Decimal Expression", chars.index);
+            }
+        }
+
+        Token.Type deducedType = Token.Type.INTEGER;
+        match(numericStart);
+        while (match(numericDigit));   // Match all digits left of decimal place
+
+        if (match(decimalPoint, numericDigit)) // Check if number is a decimal
+            deducedType = Token.Type.DECIMAL;   
+
+        while (match(numericDigit));   // Match all digits to the right of decimal place
+
+        return chars.emit(deducedType);
+        
     }
 
     public Token lexCharacter() {
@@ -72,7 +139,12 @@ public final class Lexer {
      * return true if the next characters are {@code 'a', 'b', 'c'}.
      */
     public boolean peek(String... patterns) {
-        throw new UnsupportedOperationException(); //TODO (in Lecture)
+        for (int i = 0; i < patterns.length; i++) {
+            if (!chars.has(i) || !String.valueOf(chars.get(i)).matches(patterns[i])) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -81,7 +153,13 @@ public final class Lexer {
      * true. Hint - it's easiest to have this method simply call peek.
      */
     public boolean match(String... patterns) {
-        throw new UnsupportedOperationException(); //TODO (in Lecture)
+        boolean peek = peek(patterns);
+        if (peek) {
+            for (int i = 0; i < patterns.length; i++) {
+                chars.advance();
+            }
+        }
+        return peek;
     }
 
     /**
