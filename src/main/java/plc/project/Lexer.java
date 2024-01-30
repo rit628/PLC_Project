@@ -49,6 +49,7 @@ public final class Lexer {
         List<Token> tokens = new ArrayList<Token>();
         while (chars.has(0)) {
             while (match(whitespace));
+            chars.skip();
             tokens.add(lexToken());
         }
         return tokens;
