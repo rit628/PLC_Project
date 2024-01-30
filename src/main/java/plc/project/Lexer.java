@@ -24,7 +24,10 @@ public final class Lexer {
     private static String identifierEnd = "[A-Za-z0-9_-]";
 
     private static String numericDigit = "[0-9]";
+    private static String[] numericNegativeInteger = {"-", "[1-9]"};
     private static String decimalPoint = "\\.";    
+    private static String[] numericNegativeDecimal = {"-", "0", decimalPoint, numericDigit};
+    
 
     private static String escapeStart = "\\\\";
     private static String escapeChars = "[bnrt'\\\"\\\\]";
@@ -70,7 +73,7 @@ public final class Lexer {
         if (peek(identifierStart)) {
             return lexIdentifier();
         }
-        else if (peek(numericDigit) || peek("-", numericDigit)) {
+        else if (peek(numericDigit) || peek(numericNegativeInteger) || peek(numericNegativeDecimal)) {
             return lexNumber();
         }
         else if (peek(characterQuote)) {
@@ -94,9 +97,6 @@ public final class Lexer {
         if (peek("0") && !peek("0", decimalPoint, numericDigit)) { // If leading zero is not part of a decimal expression
             match("0");
             return chars.emit(Token.Type.INTEGER);
-        }
-        else if (peek("-", "0") && !peek("-", "0", decimalPoint, numericDigit)) { // If -0 is not part of decimal expression
-            throw new ParseException("Incomplete Decimal Expression", chars.index);
         }
 
         Token.Type deducedType = Token.Type.INTEGER;
