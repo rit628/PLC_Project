@@ -192,6 +192,49 @@ public class LexerTests {
                 )),
                 Arguments.of("Trailing Newline", "token\n", Arrays.asList(
                         new Token(Token.Type.IDENTIFIER, "token", 0)
+                )),
+                Arguments.of("Negative Zero with Method Call", "-0.toString()", Arrays.asList(
+                        new Token(Token.Type.OPERATOR, "-", 0),
+                        new Token(Token.Type.INTEGER, "0", 1),
+                        new Token(Token.Type.OPERATOR, ".", 2),
+                        new Token(Token.Type.IDENTIFIER, "toString", 3),
+                        new Token(Token.Type.OPERATOR, "(", 11),
+                        new Token(Token.Type.OPERATOR, ")", 12)
+                )),
+                Arguments.of("Negative One with Method Call", "-1.toString()", Arrays.asList(
+                        new Token(Token.Type.INTEGER, "-1", 0),
+                        new Token(Token.Type.OPERATOR, ".", 2),
+                        new Token(Token.Type.IDENTIFIER, "toString", 3),
+                        new Token(Token.Type.OPERATOR, "(", 11),
+                        new Token(Token.Type.OPERATOR, ")", 12)
+                )),
+                Arguments.of("Negative Zero Decimal with Method Call", "-0.0.toString()", Arrays.asList(
+                        new Token(Token.Type.DECIMAL, "-0.0", 0),
+                        new Token(Token.Type.OPERATOR, ".", 4),
+                        new Token(Token.Type.IDENTIFIER, "toString", 5),
+                        new Token(Token.Type.OPERATOR, "(", 13),
+                        new Token(Token.Type.OPERATOR, ")", 14)
+                )),
+                Arguments.of("Negative One Tenth with Method Call", "-0.1.toString()", Arrays.asList(
+                        new Token(Token.Type.DECIMAL, "-0.1", 0),
+                        new Token(Token.Type.OPERATOR, ".", 4),
+                        new Token(Token.Type.IDENTIFIER, "toString", 5),
+                        new Token(Token.Type.OPERATOR, "(", 13),
+                        new Token(Token.Type.OPERATOR, ")", 14)
+                )),
+                Arguments.of("Negative One Tenth + Trailing Zero with Method Call", "-0.10.toString()", Arrays.asList(
+                        new Token(Token.Type.DECIMAL, "-0.10", 0),
+                        new Token(Token.Type.OPERATOR, ".", 5),
+                        new Token(Token.Type.IDENTIFIER, "toString", 6),
+                        new Token(Token.Type.OPERATOR, "(", 14),
+                        new Token(Token.Type.OPERATOR, ")", 15)
+                )),
+                Arguments.of("Negative One Decimal with Method Call", "-1.0.toString()", Arrays.asList(
+                        new Token(Token.Type.DECIMAL, "-1.0", 0),
+                        new Token(Token.Type.OPERATOR, ".", 4),
+                        new Token(Token.Type.IDENTIFIER, "toString", 5),
+                        new Token(Token.Type.OPERATOR, "(", 13),
+                        new Token(Token.Type.OPERATOR, ")", 14)
                 ))
         );
     }
