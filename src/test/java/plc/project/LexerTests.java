@@ -88,10 +88,17 @@ public class LexerTests {
     private static Stream<Arguments> testString() {
         return Stream.of(
                 Arguments.of("Empty", "\"\"", true),
+                Arguments.of("Normal String", "\"Hello world!\"", true),
                 Arguments.of("Alphabetic", "\"abc\"", true),
                 Arguments.of("Newline Escape", "\"Hello,\\nWorld\"", true),
+                Arguments.of("Ends with Escape", "\"test_string\\n\"", true),
+                Arguments.of("Proper Quote Escape", "\"Hello \\\"Bob\\\" \"", true),
+                Arguments.of("Multiple Escapes", "\"test\\nstring\\nnew\"", true),
+
                 Arguments.of("Unterminated", "\"unterminated", false),
-                Arguments.of("Invalid Escape", "\"invalid\\escape\"", false)
+                Arguments.of("Invalid Escape", "\"invalid\\escape\"", false),
+                Arguments.of("Newline in String", "\"juice\nworld\"", false),
+                Arguments.of("Newline in String End", "\"juice world\n\"", false)
         );
     }
 
@@ -132,6 +139,10 @@ public class LexerTests {
                         new Token(Token.Type.STRING, "\"Hello, World!\"", 6),
                         new Token(Token.Type.OPERATOR, ")", 21),
                         new Token(Token.Type.OPERATOR, ";", 22)
+                )),
+               Arguments.of("String Example", "\"Hello, World!\" \"This is string 2\"", Arrays.asList(
+                        new Token(Token.Type.STRING, "\"Hello, World!\"", 0),
+                        new Token(Token.Type.STRING, "\"This is string 2\"", 16)
                 )),
                 Arguments.of("Example 2", "05 394 98.81", Arrays.asList(
                         new Token(Token.Type.INTEGER, "0", 0),
