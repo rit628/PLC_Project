@@ -139,7 +139,30 @@ public final class Lexer {
 
 
     public Token lexString() {
-        throw new UnsupportedOperationException(); //TODO
+        
+        match("\"");
+        boolean in_search = true;
+        Token.Type detType = Token.Type.STRING;
+        while(!peek("\"")){
+            while(match(stringLiterals)){
+                in_search = true;
+            };
+            if(peek("\\\\")) {
+                lexEscape();
+                in_search = true;
+            }
+            if(peek("\"")){
+                break;
+            }
+            if(!in_search){
+                throw new ParseException("Unterminated String", chars.index);
+            }
+            in_search = false;
+        }
+        match("\"");
+
+
+        return chars.emit(detType);
     }
 
     public void lexEscape() {
