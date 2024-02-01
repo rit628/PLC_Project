@@ -288,6 +288,13 @@ public class LexerTests {
         Assertions.assertEquals(13, exception.getIndex());
     }
 
+    @Test
+    void testEscapeException() {
+        ParseException exception = Assertions.assertThrows(ParseException.class,
+                () -> new Lexer("\"invalid\\escape\"").lex());
+        Assertions.assertEquals(9, exception.getIndex());
+    }
+
     /**
      * Tests that lexing the input through {@link Lexer#lexToken()} produces a
      * single token with the expected type and literal matching the input.
