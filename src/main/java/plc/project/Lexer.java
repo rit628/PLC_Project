@@ -140,18 +140,18 @@ public final class Lexer {
 
     public Token lexString() {
         
-        match("\"");
+        match(stringQuote);
         boolean in_search = true;
         Token.Type detType = Token.Type.STRING;
-        while(!peek("\"")){
+        while(!peek(stringQuote)){
             while(match(stringLiterals)){
                 in_search = true;
             };
-            if(peek("\\\\")) {
+            if(peek(escapeStart)) {
                 lexEscape();
                 in_search = true;
             }
-            if(peek("\"")){
+            if(peek(stringQuote)){
                 break;
             }
             if(!in_search){
@@ -159,7 +159,7 @@ public final class Lexer {
             }
             in_search = false;
         }
-        match("\"");
+        match(stringQuote);
 
 
         return chars.emit(detType);
@@ -167,6 +167,7 @@ public final class Lexer {
 
     public void lexEscape() {
         if(!peek(escapeStart, escapeChars)){ // If the lexEscape fails, then throw as exception
+            match(escapeStart);
             throw new ParseException("Invalid Escape Sequence", chars.index);
         }
         else{
