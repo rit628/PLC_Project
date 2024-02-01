@@ -22,7 +22,10 @@ public class LexerTests {
         return Stream.of(
                 Arguments.of("Alphabetic", "getName", true),
                 Arguments.of("Alphanumeric", "thelegend27", true),
+                Arguments.of("Starts with @ Symbol", "@juiceWrld", true),
 
+                Arguments.of("Second Character @ Symbol", "j@wrld", false),
+                Arguments.of("Ends with @ Symbol", "juiceWrld@", false),
                 Arguments.of("Leading Hyphen", "-five", false),
                 Arguments.of("Leading Digit", "1fish2fish3fishbluefish", false)
         );
@@ -39,8 +42,15 @@ public class LexerTests {
                 Arguments.of("Single Digit", "1", true),
                 Arguments.of("Multiple Digits", "12345", true),
                 Arguments.of("Negative", "-1", true),
+                Arguments.of("Trailing Zeros", "100000", true),
+                Arguments.of("Zero", "0", true),
+                Arguments.of("Middle Zero", "102", true),
 
-                Arguments.of("Leading Zero", "01", false)
+                Arguments.of("Leading Zero", "01", false),
+                Arguments.of("Multiple Zeros", "00", false),
+                Arguments.of("Negative Zero", "-0", false),
+                Arguments.of("Positive Decimal", "0.1", false),
+                Arguments.of("Negative Decimal", "-0.1", false)
         );
     }
 
@@ -86,8 +96,13 @@ public class LexerTests {
         return Stream.of(
                 Arguments.of("Alphabetic", "\'c\'", true),
                 Arguments.of("Newline Escape", "\'\\n\'", true),
-                Arguments.of("Newline Escape", "\'\\b\'", true),
+                Arguments.of("Backspace Escape", "\'\\b\'", true),
                 Arguments.of("Escaped Slash", "\'\\\\\'", true),
+                Arguments.of("Escaped Quote", "\'\\'\'", true),
+                Arguments.of("Invisible Character", "\'\u0000\'", true),
+                Arguments.of("Tab Character", "\'\t\'", true),
+                Arguments.of("Vertical Tab Character", "\'\u000B\'", true),
+                Arguments.of("Backspace Character", "\'\b\'", true),
 
                 Arguments.of("Empty", "\'\'", false),
                 Arguments.of("Triple Quote", "\'\'\'", false),
@@ -113,7 +128,23 @@ public class LexerTests {
                 Arguments.of("Ends with Escape", "\"test_string\\n\"", true),
                 Arguments.of("Proper Quote Escape", "\"Hello \\\"Bob\\\" \"", true),
                 Arguments.of("Multiple Escapes", "\"test\\nstring\\nnew\"", true),
+                Arguments.of("Escape Sequences", "\"\\b\\r\\t\\n\\'\\\"\\\\\"", true),
+                Arguments.of("Special Characters", "\"`~!@#$%^&*()-_=+[{]}|;:,<.>/? \"", true),
+                Arguments.of("Escaped Nested Quote", "\"\\\"\"", true),
+                Arguments.of("Escaped Nested String", "\"\\\"\\\"\"", true),
+                Arguments.of("Active Backspace", "\"\b\"", true),
+                Arguments.of("Active Tab", "\"\t\"", true),
+                Arguments.of("Invisible Character", "\"\u0000\"", true),
 
+                Arguments.of("Non Escaped Backslash", "\"\\\"", false),
+                Arguments.of("Literal Empty String", "", false),
+                Arguments.of("Invalid Escape Sequences", "\"\\q\\w\\e\\1\\2\\`\\&\"", false),
+                Arguments.of("Unterminated String", "\"", false),
+                Arguments.of("Nested String", "\"\"\"\"", false),
+                Arguments.of("Nested Quote", "\"\"\"", false),
+                Arguments.of("Escaped Invisible Character", "\"\\u0000\"", false),
+                Arguments.of("String Literal Broken by Newline", "\"\n\"", false),
+                Arguments.of("String Literal Broken by Carriage Return", "\"\r\"", false),
                 Arguments.of("Unterminated", "\"unterminated", false),
                 Arguments.of("Invalid Escape", "\"invalid\\escape\"", false),
                 Arguments.of("Newline in String", "\"juice\nworld\"", false),
