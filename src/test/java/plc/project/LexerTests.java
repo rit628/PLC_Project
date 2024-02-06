@@ -103,6 +103,7 @@ public class LexerTests {
                 Arguments.of("Tab Character", "\'\t\'", true),
                 Arguments.of("Vertical Tab Character", "\'\u000B\'", true),
                 Arguments.of("Backspace Character", "\'\b\'", true),
+                Arguments.of("Form Feed", "\'\f\'", true),
 
                 Arguments.of("Empty", "\'\'", false),
                 Arguments.of("Triple Quote", "\'\'\'", false),
@@ -135,6 +136,10 @@ public class LexerTests {
                 Arguments.of("Active Backspace", "\"\b\"", true),
                 Arguments.of("Active Tab", "\"\t\"", true),
                 Arguments.of("Invisible Character", "\"\u0000\"", true),
+                Arguments.of("Form Feed", "\"\f\"", true),
+                Arguments.of("Vertical Tab", "\"\u000B\"", true),
+                Arguments.of("Escaped Backslash", "\"\\\\\"", true),
+
 
                 Arguments.of("Non Escaped Backslash", "\"\\\"", false),
                 Arguments.of("Literal Empty String", "", false),
@@ -171,6 +176,8 @@ public class LexerTests {
                 Arguments.of("Semicolon", ";", true),
                 Arguments.of("Minus Sign", "-", true),
                 Arguments.of("Plus Sign", "+", true),
+                Arguments.of("Form Feed", "\f", true),
+                Arguments.of("Vertical Tab", "\u000B", true),
 
                 Arguments.of("Triple Equals", "===", false),
                 Arguments.of("Triple Not Equals", "!==", false),
@@ -277,6 +284,40 @@ public class LexerTests {
                         new Token(Token.Type.IDENTIFIER, "toString", 5),
                         new Token(Token.Type.OPERATOR, "(", 13),
                         new Token(Token.Type.OPERATOR, ")", 14)
+                )),
+                Arguments.of("Multiple Dots", "1.2.3", Arrays.asList(
+                        new Token(Token.Type.DECIMAL, "1.2", 0),
+                        new Token(Token.Type.OPERATOR, ".", 3),
+                        new Token(Token.Type.INTEGER, "3", 4)
+                )),
+                Arguments.of("All Whitespace", " \b\n\r\t", Arrays.asList()),
+                Arguments.of("Complex Lex Combination", "LET @boogie2988= (\"Juice\\nWrld !.\".toInt() + 99.9 - 999).toString() == ' '+ -999.toString()", Arrays.asList(
+                        new Token(Token.Type.IDENTIFIER, "LET", 0),
+                        new Token(Token.Type.IDENTIFIER, "@boogie2988", 4),
+                        new Token(Token.Type.OPERATOR, "=", 15),
+                        new Token(Token.Type.OPERATOR, "(", 17),
+                        new Token(Token.Type.STRING, "\"Juice\\nWrld !.\"", 18),
+                        new Token(Token.Type.OPERATOR, ".", 34),
+                        new Token(Token.Type.IDENTIFIER, "toInt", 35),
+                        new Token(Token.Type.OPERATOR, "(", 40),
+                        new Token(Token.Type.OPERATOR, ")", 41),
+                        new Token(Token.Type.OPERATOR, "+", 43),
+                        new Token(Token.Type.DECIMAL, "99.9", 45),
+                        new Token(Token.Type.OPERATOR, "-", 50),
+                        new Token(Token.Type.INTEGER, "999", 52),
+                        new Token(Token.Type.OPERATOR, ")", 55),
+                        new Token(Token.Type.OPERATOR, ".", 56),
+                        new Token(Token.Type.IDENTIFIER, "toString", 57),
+                        new Token(Token.Type.OPERATOR, "(", 65),
+                        new Token(Token.Type.OPERATOR, ")", 66),
+                        new Token(Token.Type.OPERATOR, "==", 68),
+                        new Token(Token.Type.CHARACTER, "\' \'", 71),
+                        new Token(Token.Type.OPERATOR, "+", 74),
+                        new Token(Token.Type.INTEGER, "-999", 76),
+                        new Token(Token.Type.OPERATOR, ".", 80),
+                        new Token(Token.Type.IDENTIFIER, "toString", 81),
+                        new Token(Token.Type.OPERATOR, "(", 89),
+                        new Token(Token.Type.OPERATOR, ")", 90)
                 ))
         );
     }
