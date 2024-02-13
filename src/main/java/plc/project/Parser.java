@@ -43,11 +43,11 @@ public final class Parser {
     }
 
     private int getFailIndex() {
-        if (tokens.has(1)) {
-            Token target = tokens.get(tokens.index + 1);
+        if (tokens.has(0)) {
+            Token target = tokens.get(0);
             return target.getIndex();
         }
-        Token target = tokens.get(tokens.index);
+        Token target = tokens.get(-1);
         return target.getIndex() + target.getLiteral().length();
     }
 
@@ -116,12 +116,12 @@ public final class Parser {
         if (match("=")) {
             Ast.Expression RHS = parseExpression();
             if (!match(";")) {
-                throw new ParseException("Expected Semicolon.", tokens.index);
+                throw new ParseException("Expected Semicolon.", getFailIndex());
             }
             return new Ast.Statement.Assignment(LHS, RHS);
         }
         if (!match(";")) {
-            throw new ParseException("Expected Semicolon.", tokens.index);
+            throw new ParseException("Expected Semicolon.", getFailIndex());
         }
         return new Ast.Statement.Expression(LHS);
     }
@@ -347,7 +347,7 @@ public final class Parser {
 
             return new Ast.Expression.Access(offset, name);
         }
-        throw new ParseException("Failed to Parse Expression.", getFailIndex());
+        throw new ParseException("Invalid Expression.", getFailIndex());
     }
 
     /**
