@@ -42,6 +42,15 @@ public final class Parser {
         return literal;
     }
 
+    private int getFailIndex() {
+        if (tokens.has(1)) {
+            Token target = tokens.get(tokens.index + 1);
+            return target.getIndex();
+        }
+        Token target = tokens.get(tokens.index);
+        return target.getIndex() + target.getLiteral().length();
+    }
+
     /**
      * Parses the {@code source} rule.
      */
@@ -304,7 +313,7 @@ public final class Parser {
             Ast.Expression innerExpr = parseExpression();
 
             if (!(match(")"))) {
-                throw new ParseException("Unclosed Group Expression.", tokens.index);
+                throw new ParseException("Unclosed Group Expression.", getFailIndex());
             }
 
             return new Ast.Expression.Group(innerExpr);
@@ -332,13 +341,13 @@ public final class Parser {
                 match("[");
                 offset = Optional.of(parseExpression());
                 if (!match("]")) {
-                    throw new ParseException("Unclosed List Access", tokens.index);
+                    throw new ParseException("Unclosed List Access", getFailIndex());
                 }
             }
 
             return new Ast.Expression.Access(offset, name);
         }
-        throw new ParseException("Failed to Parse Expression.", tokens.index);
+        throw new ParseException("Failed to Parse Expression.", getFailIndex());
     }
 
     /**
