@@ -1,5 +1,12 @@
 package plc.project;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.Optional;
+
+import org.checkerframework.checker.units.qual.m;
+
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -19,8 +26,23 @@ public final class Parser {
 
     private final TokenStream tokens;
 
+    private String reservedTrue = "TRUE";
+    private String reservedFalse = "FALSE";
+    private String reservedNil = "NIL";
+
     public Parser(List<Token> tokens) {
         this.tokens = new TokenStream(tokens);
+    }
+
+    private String cleanEscapes(String literal) {
+        literal = literal.replace("\\b", "\b");
+        literal = literal.replace("\\n", "\n");
+        literal = literal.replace("\\r", "\r");
+        literal = literal.replace("\\t", "\t");
+        literal = literal.replace("\\'", "\'");
+        literal = literal.replace("\\\"", "\"");
+        literal = literal.replace("\\\\", "\\");
+        return literal;
     }
 
     /**
@@ -84,7 +106,18 @@ public final class Parser {
      * statement, then it is an expression/assignment statement.
      */
     public Ast.Statement parseStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expression LHS = parseExpression();
+        if (match("=")) {
+            Ast.Expression RHS = parseExpression();
+            if (!match(";")) {
+                throw new ParseException("Expected Semicolon.", tokens.index);
+            }
+            return new Ast.Statement.Assignment(LHS, RHS);
+        }
+        if (!match(";")) {
+            throw new ParseException("Expected Semicolon.", tokens.index);
+        }
+        return new Ast.Statement.Expression(LHS);
     }
 
     /**
@@ -145,35 +178,83 @@ public final class Parser {
      * Parses the {@code expression} rule.
      */
     public Ast.Expression parseExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        return parseLogicalExpression(); 
     }
-
     /**
      * Parses the {@code logical-expression} rule.
      */
     public Ast.Expression parseLogicalExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expression sub_exp = parseComparisonExpression(); 
+
+        while (peek("&&")||peek("||")){
+            
+            String operator = tokens.get(0).getLiteral();
+            match(Token.Type.OPERATOR); 
+            Ast.Expression right = parseComparisonExpression(); 
+            
+            Ast.Expression new_Bin = new Ast.Expression.Binary(operator, sub_exp, right);
+            sub_exp = new_Bin; 
+    
+        }      
+        return sub_exp; 
     }
 
     /**
      * Parses the {@code comparison-expression} rule.
      */
     public Ast.Expression parseComparisonExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expression sub_exp = parseAdditiveExpression(); 
+
+        while (peek("<")||peek(">")||peek("==")||peek("!=")){
+            
+            String operator = tokens.get(0).getLiteral();
+            match(Token.Type.OPERATOR); 
+            Ast.Expression right = parseAdditiveExpression(); 
+            
+            Ast.Expression new_Bin = new Ast.Expression.Binary(operator, sub_exp, right);
+            sub_exp = new_Bin; 
+    
+        }      
+        return sub_exp; 
     }
 
     /**
      * Parses the {@code additive-expression} rule.
      */
     public Ast.Expression parseAdditiveExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expression sub_exp = parseMultiplicativeExpression(); 
+
+        while (peek("+")||peek("-")){
+            
+            String operator = tokens.get(0).getLiteral();
+            match(Token.Type.OPERATOR); 
+            Ast.Expression right = parseMultiplicativeExpression(); 
+            
+            Ast.Expression new_Bin = new Ast.Expression.Binary(operator, sub_exp, right);
+            sub_exp = new_Bin; 
+    
+        }      
+        return sub_exp; 
     }
 
     /**
      * Parses the {@code multiplicative-expression} rule.
      */
     public Ast.Expression parseMultiplicativeExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expression sub_exp = parsePrimaryExpression(); 
+
+        while (peek("*")||peek("/")||peek("^")){
+            
+            String operator = tokens.get(0).getLiteral();
+            match(Token.Type.OPERATOR); 
+            Ast.Expression right = parsePrimaryExpression(); 
+            
+            Ast.Expression new_Bin = new Ast.Expression.Binary(operator, sub_exp, right);
+            sub_exp = new_Bin; 
+    
+        }      
+        return sub_exp; 
+
     }
 
     /**
@@ -183,7 +264,84 @@ public final class Parser {
      * not strictly necessary.
      */
     public Ast.Expression parsePrimaryExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        if (match(reservedNil)) {
+            return new Ast.Expression.Literal(null);
+        }
+        else if (match(reservedTrue)) {
+            return new Ast.Expression.Literal(Boolean.TRUE);
+        }
+        else if (match(reservedFalse)) {
+            return new Ast.Expression.Literal(Boolean.FALSE);
+        }
+        else if (peek(Token.Type.INTEGER)) {
+            String literal = tokens.get(0).getLiteral();
+            match(Token.Type.INTEGER);
+
+            return new Ast.Expression.Literal(new BigInteger(literal));
+        }
+        else if (peek(Token.Type.DECIMAL)) {
+            String literal = tokens.get(0).getLiteral();
+            match(Token.Type.DECIMAL);
+
+            return new Ast.Expression.Literal(new BigDecimal(literal));
+        }
+        else if (peek(Token.Type.CHARACTER)) {
+            String literal = tokens.get(0).getLiteral();
+            literal = literal.replace("\'", "");
+            literal = cleanEscapes(literal);
+            Character literalChar = literal.charAt(0);
+            match(Token.Type.CHARACTER);
+
+            return new Ast.Expression.Literal(literalChar);
+        }
+        else if (peek(Token.Type.STRING)) {
+            String literal = tokens.get(0).getLiteral();
+            String literalString = literal.replace("\"", "");
+            literalString = cleanEscapes(literalString);
+            match(Token.Type.STRING);
+
+            return new Ast.Expression.Literal(literalString);
+        }
+        else if (peek("(")) {
+            match(Token.Type.OPERATOR);
+            Ast.Expression innerExpr = parseExpression();
+
+            if (!(match(")"))) {
+                throw new ParseException("Unclosed Group Expression.", tokens.index);
+            }
+
+            return new Ast.Expression.Group(innerExpr);
+        }
+        else if (peek(Token.Type.IDENTIFIER, "(")) {
+            String name = tokens.get(0).getLiteral();
+            match(Token.Type.IDENTIFIER, "(");
+            ArrayList<Ast.Expression> args = new ArrayList<Ast.Expression>();
+            if (!match(")")) {  // Checks if function has no args ex: f()
+                do {
+                    args.add(parseExpression());
+                } while (match(","));
+            }
+            match(")");
+
+            return new Ast.Expression.Function(name, args);
+        }
+        else if (peek(Token.Type.IDENTIFIER)) {
+            Optional<Ast.Expression> offset = Optional.ofNullable(null);
+            String name = tokens.get(0).getLiteral();
+            match(Token.Type.IDENTIFIER);
+
+            // Parses list access
+            if (peek("[")) {
+                match("[");
+                offset = Optional.of(parseExpression());
+                if (!match("]")) {
+                    throw new ParseException("Unclosed List Access", tokens.index);
+                }
+            }
+
+            return new Ast.Expression.Access(offset, name);
+        }
+        throw new ParseException("Failed to Parse Expression.", tokens.index);
     }
 
     /**
