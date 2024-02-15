@@ -75,7 +75,8 @@ final class ParserExpressionTests {
                         ),
                         null,
                         6
-                )
+                ),
+                Arguments.of("No Tokens", Arrays.asList(), null, 0)
         );
     }
 
