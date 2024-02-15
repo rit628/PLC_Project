@@ -47,8 +47,11 @@ public final class Parser {
             Token target = tokens.get(0);
             return target.getIndex();
         }
-        Token target = tokens.get(-1);
-        return target.getIndex() + target.getLiteral().length();
+        else if (tokens.index > 0) {
+            Token target = tokens.get(-1);
+            return target.getIndex() + target.getLiteral().length();
+        }
+        return 0;
     }
 
     /**
