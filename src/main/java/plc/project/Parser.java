@@ -313,37 +313,36 @@ public final class Parser {
 
             return new Ast.Expression.Literal(literalString);
         }
-        else if (peek("(")) {
-            match(Token.Type.OPERATOR);
+        else if (match("(")) {  // Parse group expression
             Ast.Expression innerExpr = parseExpression();
 
-            if (!(match(")"))) {
+            if (!match(")")) {
                 throw new ParseException("Unclosed Group Expression.", getFailIndex());
             }
 
             return new Ast.Expression.Group(innerExpr);
         }
-        else if (peek(Token.Type.IDENTIFIER, "(")) {
+        else if (peek(Token.Type.IDENTIFIER, "(")) {  // Parse function expression
             String name = tokens.get(0).getLiteral();
             match(Token.Type.IDENTIFIER, "(");
             ArrayList<Ast.Expression> args = new ArrayList<Ast.Expression>();
-            if (!match(")")) {  // Checks if function has no args ex: f()
+            if (!peek(")")) {  // Checks if function has no args ex: f()
                 do {
                     args.add(parseExpression());
                 } while (match(","));
             }
-            match(")");
-
+            if (!match(")")) {  // Checks for missing closing parenthesis
+                throw new ParseException("Unclosed Function Expression.", getFailIndex());
+            }
             return new Ast.Expression.Function(name, args);
         }
-        else if (peek(Token.Type.IDENTIFIER)) {
-            Optional<Ast.Expression> offset = Optional.ofNullable(null);
+        else if (peek(Token.Type.IDENTIFIER)) {  // Parse access expression
+            Optional<Ast.Expression> offset = Optional.empty();
             String name = tokens.get(0).getLiteral();
             match(Token.Type.IDENTIFIER);
 
             // Parses list access
-            if (peek("[")) {
-                match("[");
+            if (match("[")) {
                 offset = Optional.of(parseExpression());
                 if (!match("]")) {
                     throw new ParseException("Unclosed List Access", getFailIndex());
