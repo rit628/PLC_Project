@@ -398,6 +398,27 @@ final class ParserExpressionTests {
                         ),
                         null,
                         10
+                ),
+                Arguments.of("Missing Closing Parenthesis", 
+                        Arrays.asList(
+                                //name(expr
+                                new Token(Token.Type.IDENTIFIER, "name", 0),
+                                new Token(Token.Type.OPERATOR, "(", 4),
+                                new Token(Token.Type.IDENTIFIER, "expr", 5)
+                        ),
+                        null,
+                        9
+                ),
+                Arguments.of("Invalid Closing Character", 
+                        Arrays.asList(
+                                //name(expr ]
+                                new Token(Token.Type.IDENTIFIER, "name", 0),
+                                new Token(Token.Type.OPERATOR, "(", 4),
+                                new Token(Token.Type.IDENTIFIER, "expr", 5),
+                                new Token(Token.Type.OPERATOR, "]", 10)
+                        ),
+                        null,
+                        10
                 )
         );
     }
