@@ -296,7 +296,8 @@ public final class Parser {
         }
         else if (peek(Token.Type.CHARACTER)) {
             String literal = tokens.get(0).getLiteral();
-            literal = literal.replace("\'", "");
+            // Replaces opening and closing '
+            literal = literal.replaceAll("^\'", "").replaceAll("\'$", ""); 
             literal = cleanEscapes(literal);
             Character literalChar = literal.charAt(0);
             match(Token.Type.CHARACTER);
@@ -305,7 +306,8 @@ public final class Parser {
         }
         else if (peek(Token.Type.STRING)) {
             String literal = tokens.get(0).getLiteral();
-            String literalString = literal.replace("\"", "");
+            // Replaces opening and closing "
+            String literalString = literal.replaceAll("^\"", "").replaceAll("\"$", "");
             literalString = cleanEscapes(literalString);
             match(Token.Type.STRING);
 
