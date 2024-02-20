@@ -23,9 +23,36 @@ public final class Parser {
 
     private final TokenStream tokens;
 
-    private String reservedTrue = "TRUE";
-    private String reservedFalse = "FALSE";
-    private String reservedNil = "NIL";
+    // Expression reserved words
+    private static String reservedTrue = "TRUE";
+    private static String reservedFalse = "FALSE";
+    private static String reservedNil = "NIL";
+
+    // Global reserved words
+    private static String reservedList = "LIST";
+    private static String reservedVar = "VAR";
+    private static String reservedVal = "VAL";
+    
+    // Function reserved words
+    private static String reservedFun = "FUN";    
+    private static String reservedDo = "DO";    
+    private static String reservedEnd = "END";
+
+    // Statement reserved words
+    private static String reservedLet = "LET";
+    private static String reservedReturn = "RETURN";
+
+    // Switch reserved words
+    private static String reservedSwitch = "SWITCH";
+    private static String reservedCase = "CASE";
+    private static String reservedDefault = "DEFAULT";
+
+    // Conditional reserved words
+    private static String reservedIf = "IF";
+    private static String reservedElse = "ELSE";
+
+    // Loop reserved words
+    private static String reservedWhile = "WHILE";
 
     public Parser(List<Token> tokens) {
         this.tokens = new TokenStream(tokens);
@@ -58,7 +85,17 @@ public final class Parser {
      * Parses the {@code source} rule.
      */
     public Ast.Source parseSource() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        List<Ast.Global> globals = new ArrayList<Ast.Global>();
+        List<Ast.Function> functions = new ArrayList<Ast.Function>();
+        // Matches global*
+        while (peek(reservedList) || peek(reservedVar) || peek(reservedVal)) {
+            globals.add(parseGlobal());
+        }
+        // Matches function*
+        while (peek(reservedFun)) {
+            functions.add(parseFunction());
+        }
+        return new Ast.Source(globals, functions);
     }
 
     /**
@@ -66,7 +103,23 @@ public final class Parser {
      * next tokens start a global, aka {@code LIST|VAL|VAR}.
      */
     public Ast.Global parseGlobal() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Global global;
+        if (peek(reservedList)) {
+            global = parseList();
+        }
+        else if (peek(reservedVar)) {
+            global = parseMutable();
+        }
+        else if (peek(reservedVal)) {
+            global = parseImmutable();
+        }
+        else {
+            throw new ParseException("Invalid Global.", getFailIndex());
+        }
+        if (!match(";")) {
+            throw new ParseException("Missing Semicolon.", getFailIndex());
+        }
+        return global;
     }
 
     /**
@@ -90,7 +143,15 @@ public final class Parser {
      * next token declares an immutable global variable, aka {@code VAL}.
      */
     public Ast.Global parseImmutable() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        match(reservedVal);
+        if (!peek(Token.Type.IDENTIFIER, "=")) {
+            match(Token.Type.IDENTIFIER); // Updates fail index if valid identifier is given
+            throw new ParseException("Invalid Immutable Declaration.", getFailIndex());
+        }
+        String name = tokens.get(0).getLiteral();
+        match(Token.Type.IDENTIFIER, "=");
+        Optional<Ast.Expression> value = Optional.of(parseExpression());
+        return new Ast.Global(name, false, value);
     }
 
     /**
@@ -98,7 +159,40 @@ public final class Parser {
      * next tokens start a method, aka {@code FUN}.
      */
     public Ast.Function parseFunction() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        match(reservedFun);
+        if (!peek(Token.Type.IDENTIFIER, "(")) {
+            match(Token.Type.IDENTIFIER); // Updates fail index if valid identifier is given
+            throw new ParseException("Invalid Function Definition.", getFailIndex());
+        }
+
+        String name = tokens.get(0).getLiteral();
+        match(Token.Type.IDENTIFIER, "(");
+        List<String> params = new ArrayList<String>();
+
+        // Parses parameter list
+        if (!peek(")")) {  // Checks if function has no args ex: f()
+            do {
+                if (match(Token.Type.IDENTIFIER)) {
+                    params.add(tokens.get(-1).getLiteral());
+                }
+                else {
+                    throw new ParseException("Invalid Function Parameter.", getFailIndex());
+                }
+            } while (match(","));
+        }
+        if (!match(")")) {  // Checks for missing closing parenthesis
+            throw new ParseException("Unclosed Function Parameter List.", getFailIndex());
+        }
+
+        // Parses function implementation
+        if (!match(reservedDo)) {
+            throw new ParseException("Missing " + reservedDo + " Keyword.", getFailIndex());
+        }
+        List<Ast.Statement> statements = parseBlock();
+        if (!match(reservedEnd)) {
+            throw new ParseException("Missing " + reservedEnd + " Keyword.", getFailIndex());
+        }
+        return new Ast.Function(name, params, statements);
     }
 
     /**
@@ -106,7 +200,11 @@ public final class Parser {
      * preceding token indicates the opening a block of statements.
      */
     public List<Ast.Statement> parseBlock() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        List<Ast.Statement> statements = new ArrayList<Ast.Statement>();
+        while (!(peek(reservedEnd) || peek(reservedCase) || peek(reservedDefault) || peek(reservedElse))) {
+            statements.add(parseStatement());
+        }
+        return statements;
     }
 
     /**
@@ -325,7 +423,7 @@ public final class Parser {
         else if (peek(Token.Type.IDENTIFIER, "(")) {  // Parse function expression
             String name = tokens.get(0).getLiteral();
             match(Token.Type.IDENTIFIER, "(");
-            ArrayList<Ast.Expression> args = new ArrayList<Ast.Expression>();
+            List<Ast.Expression> args = new ArrayList<Ast.Expression>();
             if (!peek(")")) {  // Checks if function has no args ex: f()
                 do {
                     args.add(parseExpression());
