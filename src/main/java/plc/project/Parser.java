@@ -95,6 +95,9 @@ public final class Parser {
         while (peek(reservedFun)) {
             functions.add(parseFunction());
         }
+        if (tokens.has(0)) {
+            throw new ParseException("Function Definition Followed By Global Declaration.", getFailIndex());
+        }
         return new Ast.Source(globals, functions);
     }
 
@@ -127,7 +130,24 @@ public final class Parser {
      * next token declares a list, aka {@code LIST}.
      */
     public Ast.Global parseList() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        match(reservedList);
+        if (!peek(Token.Type.IDENTIFIER, "=")) {
+            match(Token.Type.IDENTIFIER); // Updates fail index if valid identifier is given
+            throw new ParseException("Invalid List Declaration.", getFailIndex());
+        }
+        String name = tokens.get(0).getLiteral();
+        match(Token.Type.IDENTIFIER, "=");
+        if (!match("[")) {
+            throw new ParseException("Missing Opening Bracket.", getFailIndex());
+        }
+        List<Ast.Expression> values = new ArrayList<Ast.Expression>();
+        do {
+            values.add(parseExpression());
+        } while (match(","));
+        if (!match("]")) {
+            throw new ParseException("Unclosed List Declaration.", getFailIndex());
+        }
+        return new Ast.Global(name, true, Optional.of(new Ast.Expression.PlcList(values)));
     }
 
     /**
@@ -135,7 +155,16 @@ public final class Parser {
      * next token declares a mutable global variable, aka {@code VAR}.
      */
     public Ast.Global parseMutable() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        match(reservedVar);
+        if (!match(Token.Type.IDENTIFIER)) {
+            throw new ParseException("Invalid Identifier.", getFailIndex());
+        }
+        String name = tokens.get(-1).getLiteral();
+        Optional<Ast.Expression> value = Optional.empty();
+        if (match("=")) {
+            value = Optional.of(parseExpression());
+        }
+        return new Ast.Global(name, true, value);
     }
 
     /**
@@ -213,18 +242,36 @@ public final class Parser {
      * statement, then it is an expression/assignment statement.
      */
     public Ast.Statement parseStatement() throws ParseException {
-        Ast.Expression LHS = parseExpression();
-        if (match("=")) {
-            Ast.Expression RHS = parseExpression();
+      
+        if (peek(reservedLet)){
+            return parseDeclarationStatement();
+        }
+        else if (peek(reservedSwitch)){
+            return parseSwitchStatement();   
+        }
+        else if (peek(reservedIf)) {
+            return parseIfStatement();
+        }
+        else if (peek(reservedWhile)) {
+            return parseWhileStatement();
+        }
+        else if (peek(reservedReturn)) {
+            return parseReturnStatement();
+        }
+        else {
+            Ast.Expression LHS = parseExpression();
+            if (match("=")) {
+                Ast.Expression RHS = parseExpression();
+                if (!match(";")) {
+                    throw new ParseException("Expected Semicolon.", getFailIndex());
+                }
+                return new Ast.Statement.Assignment(LHS, RHS);
+            }
             if (!match(";")) {
                 throw new ParseException("Expected Semicolon.", getFailIndex());
             }
-            return new Ast.Statement.Assignment(LHS, RHS);
+            return new Ast.Statement.Expression(LHS);
         }
-        if (!match(";")) {
-            throw new ParseException("Expected Semicolon.", getFailIndex());
-        }
-        return new Ast.Statement.Expression(LHS);
     }
 
     /**
@@ -233,7 +280,24 @@ public final class Parser {
      * statement, aka {@code LET}.
      */
     public Ast.Statement.Declaration parseDeclarationStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        match(reservedLet);
+        if (!match(Token.Type.IDENTIFIER)) {
+            throw new ParseException("Invalid Identifier.", getFailIndex());
+        }
+        String var_name = tokens.get(-1).getLiteral();
+        Optional<Ast.Expression> RHS_val = Optional.empty();
+        
+        if (match("=")){
+            RHS_val = Optional.of(parseExpression());
+        }
+        
+        if(match(";")) {
+            Ast.Statement.Declaration DecStat = new Ast.Statement.Declaration(var_name, RHS_val);
+            return DecStat;
+        }
+        else {
+            throw new ParseException("Expected Semicolon.", getFailIndex()); 
+        }
     }
 
     /**
@@ -242,7 +306,20 @@ public final class Parser {
      * {@code IF}.
      */
     public Ast.Statement.If parseIfStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        match(reservedIf);
+        Ast.Expression condition = parseExpression();
+        if (!match(reservedDo)) {
+            throw new ParseException("Missing " + reservedDo + " Keyword", getFailIndex());
+        }
+        List<Ast.Statement> thenStatements = parseBlock();
+        List<Ast.Statement> elseStatements = new ArrayList<Ast.Statement>();
+        if (match(reservedElse)) {
+            elseStatements = parseBlock();
+        }
+        if (!match(reservedEnd)) {
+            throw new ParseException("Missing " + reservedEnd + " Keyword.", getFailIndex());
+        }
+        return new Ast.Statement.If(condition, thenStatements, elseStatements);
     }
 
     /**
@@ -251,7 +328,20 @@ public final class Parser {
      * {@code SWITCH}.
      */
     public Ast.Statement.Switch parseSwitchStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        match(reservedSwitch);
+        Ast.Expression condition = parseExpression();
+        List<Ast.Statement.Case> cases = new ArrayList<Ast.Statement.Case>();
+        while (peek(reservedCase)) {
+            cases.add(parseCaseStatement());
+        }
+        if (!peek(reservedDefault)) {
+            throw new ParseException("Missing " + reservedDefault + " Keyword", getFailIndex());
+        }
+        cases.add(parseCaseStatement());
+        if (!match(reservedEnd)) {
+            throw new ParseException("Missing " + reservedEnd + " Keyword", getFailIndex());
+        }
+        return new Ast.Statement.Switch(condition, cases);
     }
 
     /**
@@ -260,7 +350,23 @@ public final class Parser {
      * default block of a switch statement, aka {@code CASE} or {@code DEFAULT}.
      */
     public Ast.Statement.Case parseCaseStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Optional<Ast.Expression> value = Optional.empty(); 
+        List<Ast.Statement> statements = new ArrayList<Ast.Statement>(); 
+        if (match(reservedCase)){
+            value = Optional.of(parseExpression()); 
+            if (match(":")){
+                statements = parseBlock();
+            }
+            else {
+                throw new ParseException("Missing Colon.", getFailIndex());
+            }
+        }
+        else if (match(reservedDefault)){
+            statements = parseBlock();
+        }    
+
+        Ast.Statement.Case CaseStatement = new Ast.Statement.Case(value, statements);
+        return CaseStatement;
     }
 
     /**
@@ -269,7 +375,15 @@ public final class Parser {
      * {@code WHILE}.
      */
     public Ast.Statement.While parseWhileStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        match(reservedWhile);
+        Ast.Expression condition = parseExpression();
+        if (!match(reservedDo)) {            throw new ParseException("Missing " + reservedDo + " Keyword", getFailIndex());
+        }
+        List<Ast.Statement> statements = parseBlock();
+        if (!match(reservedEnd)) {
+            throw new ParseException("Missing " + reservedEnd + " Keyword.", getFailIndex());
+        }
+        return new Ast.Statement.While(condition, statements);
     }
 
     /**
@@ -278,7 +392,12 @@ public final class Parser {
      * {@code RETURN}.
      */
     public Ast.Statement.Return parseReturnStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        match(reservedReturn);
+        Ast.Expression value = parseExpression();
+        if (!match(";")) {
+            throw new ParseException("Missing Semicolon.", getFailIndex());
+        }
+        return new Ast.Statement.Return(value);
     }
 
     /**
