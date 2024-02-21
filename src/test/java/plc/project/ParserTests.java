@@ -64,6 +64,129 @@ final class ParserTests {
                                         new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt"))
                                 )))
                         )
+                ),
+                Arguments.of("Global - Mutable With Instantiation",
+                        Arrays.asList(
+                                //VAR name = expr;
+                                new Token(Token.Type.IDENTIFIER, "VAR", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, "=", 9),
+                                new Token(Token.Type.IDENTIFIER, "expr", 11),
+                                new Token(Token.Type.OPERATOR, ";", 15)
+                        ),
+                        new Ast.Source(
+                                Arrays.asList(new Ast.Global("name", true, Optional.of(new Ast.Expression.Access(Optional.empty(), "expr")))),
+                                Arrays.asList()
+                        )
+                ),
+                Arguments.of("Global - Mutable Without Instantiation",
+                        Arrays.asList(
+                                //VAR name;
+                                new Token(Token.Type.IDENTIFIER, "VAR", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, ";", 8)
+                        ),
+                        new Ast.Source(
+                                Arrays.asList(new Ast.Global("name", true, Optional.empty())),
+                                Arrays.asList()
+                        )
+                ),
+                Arguments.of("Global - List With One Value",
+                        Arrays.asList(
+                                //LIST name = [expr];
+                                new Token(Token.Type.IDENTIFIER, "LIST", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 5),
+                                new Token(Token.Type.OPERATOR, "=", 9),
+                                new Token(Token.Type.OPERATOR, "[", 11),
+                                new Token(Token.Type.IDENTIFIER, "expr", 12),
+                                new Token(Token.Type.OPERATOR, "]", 15),
+                                new Token(Token.Type.OPERATOR, ";", 16)
+                        ),
+                        new Ast.Source(
+                                Arrays.asList(new Ast.Global("name", true, Optional.of(new Ast.Expression.PlcList(
+                                        Arrays.asList(
+                                                new Ast.Expression.Access(Optional.empty(), "expr") 
+                                        )
+                                        )))),
+                                Arrays.asList()
+                        )
+                ),
+                Arguments.of("Global - List With Three Values",
+                        Arrays.asList(
+                                //LIST name = [expr1, expr2, expr3];
+                                new Token(Token.Type.IDENTIFIER, "LIST", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 5),
+                                new Token(Token.Type.OPERATOR, "=", 9),
+                                new Token(Token.Type.OPERATOR, "[", 11),
+                                new Token(Token.Type.IDENTIFIER, "expr1", 12),
+                                new Token(Token.Type.OPERATOR, ",", 17),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 19),
+                                new Token(Token.Type.OPERATOR, ",", 24),
+                                new Token(Token.Type.IDENTIFIER, "expr3", 26),
+                                new Token(Token.Type.OPERATOR, "]", 27),
+                                new Token(Token.Type.OPERATOR, ";", 28)
+                        ),
+                        new Ast.Source(
+                                Arrays.asList(new Ast.Global("name", true, Optional.of(new Ast.Expression.PlcList(
+                                        Arrays.asList(
+                                                new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                                new Ast.Expression.Access(Optional.empty(), "expr2"),
+                                                new Ast.Expression.Access(Optional.empty(), "expr3")
+                                        )
+                                        )))),
+                                Arrays.asList()
+                        )
+                ),
+                Arguments.of("Function - Trailing Comma",
+                        Arrays.asList(
+                                //name(expr1, expr2, )
+                                new Token(Token.Type.IDENTIFIER, "name", 0),
+                                new Token(Token.Type.OPERATOR, "(", 4),
+                                new Token(Token.Type.IDENTIFIER, "expr1", 5),
+                                new Token(Token.Type.OPERATOR, ",", 10),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 12),
+                                new Token(Token.Type.OPERATOR, ",", 17),
+                                new Token(Token.Type.OPERATOR, ")", 19)
+                        ),
+                        null,
+                        19
+                ),
+                Arguments.of("Function - Trailing Comma No Closing Parenthesis",
+                        Arrays.asList(
+                                //name(expr1, expr2,
+                                new Token(Token.Type.IDENTIFIER, "name", 0),
+                                new Token(Token.Type.OPERATOR, "(", 4),
+                                new Token(Token.Type.IDENTIFIER, "expr1", 5),
+                                new Token(Token.Type.OPERATOR, ",", 10),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 12),
+                                new Token(Token.Type.OPERATOR, ",", 17)
+                        ),
+                        null,
+                        18
+                ),
+                Arguments.of("Function - Missing Closing Parenthesis",
+                        Arrays.asList(
+                                //name(expr1, expr2
+                                new Token(Token.Type.IDENTIFIER, "name", 0),
+                                new Token(Token.Type.OPERATOR, "(", 4),
+                                new Token(Token.Type.IDENTIFIER, "expr1", 5),
+                                new Token(Token.Type.OPERATOR, ",", 10),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 12)
+                        ),
+                        null,
+                        17
+                ),
+                Arguments.of("Function - Missing Opening Parenthesis",
+                        Arrays.asList(
+                                //name expr1, expr2)
+                                new Token(Token.Type.IDENTIFIER, "name", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr1", 5),
+                                new Token(Token.Type.OPERATOR, ",", 10),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 12),
+                                new Token(Token.Type.OPERATOR, ")", 17)
+                        ),
+                        null,
+                        5
                 )
         );
     }
@@ -91,8 +214,8 @@ final class ParserTests {
 
     @ParameterizedTest
     @MethodSource
-    void testDeclarationStatement(String test, List<Token> tokens, Ast.Statement.Declaration expected) {
-        test(tokens, expected, Parser::parseStatement);
+    void testDeclarationStatement(String test, List<Token> tokens, Ast.Statement.Declaration expected, int exceptionIndex) {
+        test(tokens, expected, Parser::parseStatement, exceptionIndex);
     }
 
     private static Stream<Arguments> testDeclarationStatement() {
@@ -104,7 +227,8 @@ final class ParserTests {
                                 new Token(Token.Type.IDENTIFIER, "name", -1),
                                 new Token(Token.Type.OPERATOR, ";", -1)
                         ),
-                        new Ast.Statement.Declaration("name", Optional.empty())
+                        new Ast.Statement.Declaration("name", Optional.empty()),
+                        -1
                 ),
                 Arguments.of("Initialization",
                         Arrays.asList(
@@ -115,7 +239,38 @@ final class ParserTests {
                                 new Token(Token.Type.IDENTIFIER, "expr", 11),
                                 new Token(Token.Type.OPERATOR, ";", 15)
                         ),
-                        new Ast.Statement.Declaration("name", Optional.of(new Ast.Expression.Access(Optional.empty(), "expr")))
+                        new Ast.Statement.Declaration("name", Optional.of(new Ast.Expression.Access(Optional.empty(), "expr"))),
+                        -1
+                ), 
+                Arguments.of("Initialization Missing Expression",
+                        Arrays.asList(
+                                //LET name =;
+                                new Token(Token.Type.IDENTIFIER, "LET", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, "=", 9),
+                                new Token(Token.Type.OPERATOR, ";", 10)
+                        ),
+                        null,
+                        10                        
+                ), 
+                Arguments.of("Initialization Missing Semicolon",
+                        Arrays.asList(
+                                //LET name = Value
+                                new Token(Token.Type.IDENTIFIER, "LET", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, "=", 9),
+                                new Token(Token.Type.IDENTIFIER, "Value", 10)
+                        ),
+                        null, 
+                        15
+                ),
+                 Arguments.of("Definition Missing Semicolon",
+                        Arrays.asList(
+                                //LET
+                                new Token(Token.Type.IDENTIFIER, "LET", 0)
+                        ),
+                        null, 
+                        3
                 )
         );
     }
@@ -147,8 +302,8 @@ final class ParserTests {
 
     @ParameterizedTest
     @MethodSource
-    void testIfStatement(String test, List<Token> tokens, Ast.Statement.If expected) {
-        test(tokens, expected, Parser::parseStatement);
+    void testIfStatement(String test, List<Token> tokens, Ast.Statement.If expected, int exceptionIndex) {
+        test(tokens, expected, Parser::parseStatement, exceptionIndex);
     }
 
     private static Stream<Arguments> testIfStatement() {
@@ -167,7 +322,8 @@ final class ParserTests {
                                 new Ast.Expression.Access(Optional.empty(), "expr"),
                                 Arrays.asList(new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt"))),
                                 Arrays.asList()
-                        )
+                        ),
+                        -1
                 ),
                 Arguments.of("Else",
                         Arrays.asList(
@@ -186,7 +342,30 @@ final class ParserTests {
                                 new Ast.Expression.Access(Optional.empty(), "expr"),
                                 Arrays.asList(new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt1"))),
                                 Arrays.asList(new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt2")))
-                        )
+                        ),
+                        -1
+                ),
+                Arguments.of("Missing DO",
+                        Arrays.asList(
+                                //IF expr stmt1;
+                                new Token(Token.Type.IDENTIFIER, "IF", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr", 3),
+                                new Token(Token.Type.IDENTIFIER, "stmt1", 8),
+                                new Token(Token.Type.OPERATOR, ";", 13)
+                        ), 
+                        null,
+                        8
+                ), 
+                Arguments.of("Missing Semicolon",
+                        Arrays.asList(
+                                //IF expr DO stmt1
+                                new Token(Token.Type.IDENTIFIER, "IF", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr", 3),
+                                new Token(Token.Type.IDENTIFIER, "DO", 8),
+                                new Token(Token.Type.IDENTIFIER, "stmt1", 11)
+                        ), 
+                        null,
+                        16
                 )
         );
     }
@@ -392,8 +571,8 @@ final class ParserTests {
 
     @ParameterizedTest
     @MethodSource
-    void testFunctionExpression(String test, List<Token> tokens, Ast.Expression.Function expected) {
-        test(tokens, expected, Parser::parseExpression);
+    void testFunctionExpression(String test, List<Token> tokens, Ast.Expression.Function expected, int exceptionIndex) {
+        test(tokens, expected, Parser::parseExpression, exceptionIndex);
     }
 
     private static Stream<Arguments> testFunctionExpression() {
@@ -405,7 +584,8 @@ final class ParserTests {
                                 new Token(Token.Type.OPERATOR, "(", 4),
                                 new Token(Token.Type.OPERATOR, ")", 5)
                         ),
-                        new Ast.Expression.Function("name", Arrays.asList())
+                        new Ast.Expression.Function("name", Arrays.asList()),
+                        -1
                 ),
                 Arguments.of("Multiple Arguments",
                         Arrays.asList(
@@ -423,7 +603,47 @@ final class ParserTests {
                                 new Ast.Expression.Access(Optional.empty(), "expr1"),
                                 new Ast.Expression.Access(Optional.empty(), "expr2"),
                                 new Ast.Expression.Access(Optional.empty(), "expr3")
-                        ))
+                        )),
+                        -1
+                ),
+                Arguments.of("Trailing Comma",
+                        Arrays.asList(
+                                //name(expr1, expr2, )
+                                new Token(Token.Type.IDENTIFIER, "name", 0),
+                                new Token(Token.Type.OPERATOR, "(", 4),
+                                new Token(Token.Type.IDENTIFIER, "expr1", 5),
+                                new Token(Token.Type.OPERATOR, ",", 10),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 12),
+                                new Token(Token.Type.OPERATOR, ",", 17),
+                                new Token(Token.Type.OPERATOR, ")", 19)
+                        ),
+                        null,
+                        19
+                ),
+                Arguments.of("Trailing Comma No Closing Parenthesis",
+                        Arrays.asList(
+                                //name(expr1, expr2,
+                                new Token(Token.Type.IDENTIFIER, "name", 0),
+                                new Token(Token.Type.OPERATOR, "(", 4),
+                                new Token(Token.Type.IDENTIFIER, "expr1", 5),
+                                new Token(Token.Type.OPERATOR, ",", 10),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 12),
+                                new Token(Token.Type.OPERATOR, ",", 17)
+                        ),
+                        null,
+                        18
+                ),
+                Arguments.of("Missing Closing Parenthesis",
+                        Arrays.asList(
+                                //name(expr1, expr2
+                                new Token(Token.Type.IDENTIFIER, "name", 0),
+                                new Token(Token.Type.OPERATOR, "(", 4),
+                                new Token(Token.Type.IDENTIFIER, "expr1", 5),
+                                new Token(Token.Type.OPERATOR, ",", 10),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 12)
+                        ),
+                        null,
+                        17
                 )
         );
     }
@@ -513,6 +733,16 @@ final class ParserTests {
             Assertions.assertEquals(expected, function.apply(parser));
         } else {
             Assertions.assertThrows(ParseException.class, () -> function.apply(parser));
+        }
+    }
+
+    private static <T extends Ast> void test(List<Token> tokens, T expected, Function<Parser, T> function, int exceptionIndex) {
+        Parser parser = new Parser(tokens);
+        if (expected != null) {
+            Assertions.assertEquals(expected, function.apply(parser));
+        } else {
+            ParseException e = Assertions.assertThrows(ParseException.class, () -> function.apply(parser));
+            Assertions.assertEquals(exceptionIndex, e.getIndex());
         }
     }
 
