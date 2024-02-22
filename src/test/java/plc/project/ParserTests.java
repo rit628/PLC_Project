@@ -366,6 +366,123 @@ final class ParserTests {
                         ), 
                         null,
                         16
+                ),
+                Arguments.of("Missing Expression",
+                        Arrays.asList(
+                                //IF DO stmt1
+                                new Token(Token.Type.IDENTIFIER, "IF", 0),
+                                new Token(Token.Type.IDENTIFIER, "DO", 3),
+                                new Token(Token.Type.IDENTIFIER, "stmt1",  6)
+                        ), 
+                        null,
+                        6
+                )
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void testSwitchStatement(String test, List<Token> tokens, Ast.Statement.Switch expected, int exceptionIndex) {
+        test(tokens, expected, Parser::parseStatement, exceptionIndex);
+    }
+
+    private static Stream<Arguments> testSwitchStatement() {
+        return Stream.of(
+                Arguments.of("Switch",
+                        Arrays.asList(
+                                //SWITCH expr DEFAULT stmt; END
+                                new Token(Token.Type.IDENTIFIER, "SWITCH", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr", 7),
+                                new Token(Token.Type.IDENTIFIER, "DEFAULT", 12),
+                                new Token(Token.Type.IDENTIFIER, "stmt", 20),
+                                new Token(Token.Type.OPERATOR, ";", 24),
+                                new Token(Token.Type.IDENTIFIER, "END", 26)
+                        ),
+                        new Ast.Statement.Switch(
+                                new Ast.Expression.Access(Optional.empty(), "expr"),
+                                Arrays.asList(
+                                        new Ast.Statement.Case(Optional.empty(),
+                                                Arrays.asList(
+                                                        new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt"))
+                                                )
+                                        )
+                                )
+                        ),
+                        -1
+                ),
+                Arguments.of("Switch With Case",
+                        Arrays.asList(
+                                //SWITCH expr1 CASE expr2 : stmt1; DEFAULT stmt2; END
+                                new Token(Token.Type.IDENTIFIER, "SWITCH", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr1", 7),
+                                new Token(Token.Type.IDENTIFIER, "CASE", 13),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 18),
+                                new Token(Token.Type.OPERATOR, ":", 24),
+                                new Token(Token.Type.IDENTIFIER, "stmt1", 26),
+                                new Token(Token.Type.OPERATOR, ";", 31),
+                                new Token(Token.Type.IDENTIFIER, "DEFAULT", 33),
+                                new Token(Token.Type.IDENTIFIER, "stmt2", 41),
+                                new Token(Token.Type.OPERATOR, ";", 46),
+                                new Token(Token.Type.IDENTIFIER, "END", 47)
+                        ),
+                        new Ast.Statement.Switch(
+                                new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                Arrays.asList(
+                                        new Ast.Statement.Case(Optional.of(new Ast.Expression.Access(Optional.empty(), "expr2")),
+                                                Arrays.asList(
+                                                        new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt1"))
+                                                )
+                                        ),
+                                        new Ast.Statement.Case(Optional.empty(),
+                                                Arrays.asList(
+                                                        new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt2"))
+                                                )
+                                        )
+                                )
+                        ),
+                        -1
+                ),
+                Arguments.of("Switch With 2 Cases",
+                        Arrays.asList(
+                                //SWITCH expr1 CASE expr2 : stmt1; CASE expr3:stmt2; DEFAULT stmt3; END
+                                new Token(Token.Type.IDENTIFIER, "SWITCH", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr1", 7),
+                                new Token(Token.Type.IDENTIFIER, "CASE", 13),
+                                new Token(Token.Type.IDENTIFIER, "expr2", 18),
+                                new Token(Token.Type.OPERATOR, ":", 24),
+                                new Token(Token.Type.IDENTIFIER, "stmt1", 26),
+                                new Token(Token.Type.OPERATOR, ";", 31),
+                                new Token(Token.Type.IDENTIFIER, "CASE", 33),
+                                new Token(Token.Type.IDENTIFIER, "expr3", 38),
+                                new Token(Token.Type.OPERATOR, ":", 39),
+                                new Token(Token.Type.IDENTIFIER, "stmt2", 40),
+                                new Token(Token.Type.OPERATOR, ";", 45),
+                                new Token(Token.Type.IDENTIFIER, "DEFAULT", 47),
+                                new Token(Token.Type.IDENTIFIER, "stmt3", 55),
+                                new Token(Token.Type.OPERATOR, ";", 60),
+                                new Token(Token.Type.IDENTIFIER, "END", 62)
+                        ),
+                        new Ast.Statement.Switch(
+                                new Ast.Expression.Access(Optional.empty(), "expr1"),
+                                Arrays.asList(
+                                        new Ast.Statement.Case(Optional.of(new Ast.Expression.Access(Optional.empty(), "expr2")),
+                                                Arrays.asList(
+                                                        new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt1"))
+                                                )
+                                        ),
+                                        new Ast.Statement.Case(Optional.of(new Ast.Expression.Access(Optional.empty(), "expr3")),
+                                                Arrays.asList(
+                                                        new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt2"))
+                                                )
+                                        ),
+                                        new Ast.Statement.Case(Optional.empty(),
+                                                Arrays.asList(
+                                                        new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt3"))
+                                                )
+                                        )
+                                )
+                        ),
+                        -1
                 )
         );
     }
@@ -398,8 +515,8 @@ final class ParserTests {
 
     @ParameterizedTest
     @MethodSource
-    void testReturnStatement(String test, List<Token> tokens, Ast.Statement.Return expected) {
-        test(tokens, expected, Parser::parseStatement);
+    void testReturnStatement(String test, List<Token> tokens, Ast.Statement.Return expected, int exceptionIndex) {
+        test(tokens, expected, Parser::parseStatement, exceptionIndex);
     }
 
     private static Stream<Arguments> testReturnStatement() {
@@ -411,7 +528,57 @@ final class ParserTests {
                                 new Token(Token.Type.IDENTIFIER, "expr", 7),
                                 new Token(Token.Type.OPERATOR, ";", 11)
                         ),
-                        new Ast.Statement.Return(new Ast.Expression.Access(Optional.empty(), "expr"))
+                        new Ast.Statement.Return(new Ast.Expression.Access(Optional.empty(), "expr")),
+                        -1
+                ),
+                Arguments.of("Return Without Expression",
+                        Arrays.asList(
+                                //RETURN ;
+                                new Token(Token.Type.IDENTIFIER, "RETURN", 0),
+                                new Token(Token.Type.OPERATOR, ";", 7)
+                        ),
+                        null,
+                        7
+                ),
+                Arguments.of("Return Without Semicolon",
+                        Arrays.asList(
+                                //RETURN expr
+                                new Token(Token.Type.IDENTIFIER, "RETURN", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr", 7)
+                        ),
+                        null,
+                        11
+                ),
+                Arguments.of("Return With Invalid Expression",
+                        Arrays.asList(
+                                //RETURN ();
+                                new Token(Token.Type.IDENTIFIER, "RETURN", 0),
+                                new Token(Token.Type.OPERATOR, "(", 7),
+                                new Token(Token.Type.OPERATOR, ")", 8),
+                                new Token(Token.Type.OPERATOR, ";", 9)
+                        ),
+                        null,
+                        8
+                ),
+                Arguments.of("Return With Grouped Expression",
+                        Arrays.asList(
+                                //RETURN (0 == 1.2);
+                                new Token(Token.Type.IDENTIFIER, "RETURN", 0),
+                                new Token(Token.Type.OPERATOR, "(", 7),
+                                new Token(Token.Type.INTEGER, "0", 8),
+                                new Token(Token.Type.OPERATOR, "==", 10),
+                                new Token(Token.Type.DECIMAL, "1.2", 13),
+                                new Token(Token.Type.OPERATOR, ")", 16),
+                                new Token(Token.Type.OPERATOR, ";", 17)
+                        ),
+                        new Ast.Statement.Return(new Ast.Expression.Group(
+                                new Ast.Expression.Binary(
+                                "==",
+                                new Ast.Expression.Literal(new BigInteger("0")),
+                                new Ast.Expression.Literal(new BigDecimal("1.2"))
+                                )
+                        )),
+                        -1
                 )
         );
     }
