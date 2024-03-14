@@ -110,17 +110,42 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
                 scope = scope.getParent();
             }
         }
-        return Environment.NIL;        
+        return Environment.NIL;
     }
 
     @Override
     public Environment.PlcObject visit(Ast.Statement.Switch ast) {
-        throw new UnsupportedOperationException(); //TODO
+        try {
+            scope = new Scope(scope);
+            for(Ast.Statement.Case vi_case : ast.getCases()){
+                if(vi_case.getValue().isPresent()){
+                    Ast.Expression.Binary omar = new Ast.Expression.Binary("==", ast.getCondition(), vi_case.getValue().get());
+                    if(requireType(Boolean.class, visit(omar))){
+                        visit(vi_case);
+                    }
+                    break;
+                }
+                else{
+                    // HANDLES DEFAULT CASE
+                    // TODO: ASSUMES THAT DEFAULT IS THE LAST CASE IN THE LIST (SHOULD BE)
+                    visit(vi_case);
+                }
+            }
+        }
+        finally{
+            scope = scope.getParent();
+        }
+
+        return Environment.NIL;
     }
 
     @Override
     public Environment.PlcObject visit(Ast.Statement.Case ast) {
-        throw new UnsupportedOperationException(); //TODO
+        for(Ast.Statement stmt : ast.getStatements()){
+            visit(stmt);
+        }
+
+        return Environment.NIL;
     }
 
     @Override
@@ -141,7 +166,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     @Override
     public Environment.PlcObject visit(Ast.Statement.Return ast) {
-        throw new UnsupportedOperationException(); //TODO
+        throw new Return(visit(ast.getValue()));
     }
 
     @Override
@@ -159,7 +184,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
         return visit(ast.getExpression());
     }
 
-       @Override
+    @Override
     public Environment.PlcObject visit(Ast.Expression.Binary ast) {
 
         String operator = ast.getOperator();
@@ -354,13 +379,13 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
                     return Environment.create(Resultant);
 
                 }
-        }
+            }
             else{
                 throw new RuntimeException("Invalid Exponentiation");
             }
         }
 
-        
+
         // THIS IS FOR ADDITION
         if(operator.equals("+")) {
             Environment.PlcObject right = visit(ast.getRight());
