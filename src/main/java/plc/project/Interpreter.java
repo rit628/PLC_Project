@@ -6,6 +6,9 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import plc.project.Environment.PlcObject;
+
 import java.util.Optional;
 
 public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
@@ -26,17 +29,54 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     @Override
     public Environment.PlcObject visit(Ast.Source ast) {
-        throw new UnsupportedOperationException(); //TODO
+        for (Ast.Global global : ast.getGlobals()) {
+            visit(global);
+        }
+        for (Ast.Function func : ast.getFunctions()) {
+            visit(func);
+        }
+        return scope.lookupFunction("main", 0).invoke(new ArrayList<Environment.PlcObject>()); 
     }
 
     @Override
     public Environment.PlcObject visit(Ast.Global ast) {
-        throw new UnsupportedOperationException(); //TODO
+        String name = ast.getName();
+        Boolean mutable = ast.getMutable();
+        Optional<Ast.Expression> value = ast.getValue();
+        if (value.isPresent()) {
+            scope.defineVariable(name, mutable, visit(value.get()));
+        }
+        else {
+            scope.defineVariable(name, mutable, Environment.NIL);
+        }
+        return Environment.NIL;
     }
 
     @Override
     public Environment.PlcObject visit(Ast.Function ast) {
-        throw new UnsupportedOperationException(); //TODO
+        String name = ast.getName();
+        List<String> params = ast.getParameters();
+        List<Ast.Statement> stmts = ast.getStatements();
+        java.util.function.Function<List<PlcObject>, PlcObject> definition = (args) -> {
+            scope = new Scope(scope);
+            for (int i = 0; i < args.size(); i++) {
+                // TODO: Check mutability
+                scope.defineVariable(params.get(i), true, args.get(i));
+            }
+            
+            try {
+                for (Ast.Statement stmt : stmts) {
+                    visit(stmt); 
+                }
+            } 
+            catch (Return e) {
+                return e.value;
+            }
+            scope = scope.getParent();
+            return Environment.NIL;
+        }; 
+        scope.defineFunction(name, params.size(), definition);
+        return Environment.NIL;
     }
 
     @Override
