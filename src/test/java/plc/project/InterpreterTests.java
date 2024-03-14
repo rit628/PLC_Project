@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import javax.swing.text.html.Option;
+
 final class InterpreterTests {
 
     @ParameterizedTest
@@ -106,6 +108,19 @@ final class InterpreterTests {
                         )),
                         Arrays.asList(Environment.create(BigInteger.TEN)),
                         BigInteger.valueOf(100)
+                ),
+                // FUN mult(x,y) DO x = x*y; END
+                Arguments.of("Mutate",
+                        new Ast.Function("mult", Arrays.asList("x","y"), Arrays.asList(
+                                new Ast.Statement.Assignment(new Ast.Expression.Access(Optional.empty(), "x"), 
+                                        new Ast.Expression.Binary("*",
+                                                new Ast.Expression.Access(Optional.empty(), "x"),
+                                                new Ast.Expression.Access(Optional.empty(), "y")
+                                        )
+                                )
+                        )),
+                        Arrays.asList(Environment.create(BigInteger.TEN), Environment.create(BigInteger.TWO)),
+                        Environment.NIL.getValue()
                 )
         );
     }
