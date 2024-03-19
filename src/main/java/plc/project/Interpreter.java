@@ -14,9 +14,11 @@ import java.util.Optional;
 public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     private Scope scope = new Scope(null);
+    private Scope globalScope;
 
     public Interpreter(Scope parent) {
         scope = new Scope(parent);
+        globalScope = scope;
         scope.defineFunction("print", 1, args -> {
             System.out.println(args.get(0).getValue());
             return Environment.NIL;
@@ -58,9 +60,9 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
         List<String> params = ast.getParameters();
         List<Ast.Statement> stmts = ast.getStatements();
         java.util.function.Function<List<PlcObject>, PlcObject> definition = (args) -> {
-            scope = new Scope(scope);
+            Scope oldScope = scope;
+            scope = new Scope(globalScope);
             for (int i = 0; i < args.size(); i++) {
-                // TODO: Check mutability
                 scope.defineVariable(params.get(i), true, args.get(i));
             }
             
@@ -72,7 +74,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
             catch (Return e) {
                 return e.value;
             }
-            scope = scope.getParent();
+            scope = oldScope;
             return Environment.NIL;
         }; 
         scope.defineFunction(name, params.size(), definition);
