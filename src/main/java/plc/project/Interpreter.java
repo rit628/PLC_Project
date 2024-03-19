@@ -14,11 +14,10 @@ import java.util.Optional;
 public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     private Scope scope = new Scope(null);
-    private Scope globalScope;
+    private Scope functionScope;
 
     public Interpreter(Scope parent) {
         scope = new Scope(parent);
-        globalScope = scope;
         scope.defineFunction("print", 1, args -> {
             System.out.println(args.get(0).getValue());
             return Environment.NIL;
@@ -56,12 +55,13 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     @Override
     public Environment.PlcObject visit(Ast.Function ast) {
+        functionScope = scope;
         String name = ast.getName();
         List<String> params = ast.getParameters();
         List<Ast.Statement> stmts = ast.getStatements();
         java.util.function.Function<List<PlcObject>, PlcObject> definition = (args) -> {
             Scope oldScope = scope;
-            scope = new Scope(globalScope);
+            scope = new Scope(functionScope);
             for (int i = 0; i < args.size(); i++) {
                 scope.defineVariable(params.get(i), true, args.get(i));
             }
