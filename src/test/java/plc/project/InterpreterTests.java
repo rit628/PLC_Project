@@ -356,6 +356,38 @@ final class InterpreterTests {
 
         Assertions.assertEquals(new Character('n'), scope.lookupVariable("letter").getValue().getValue());
     }
+    @Test
+     void testSwitchStatementNumeric() {
+        // SWITCH x CASE 5 : print("yes"); CASE 1 : print("no"); DEFAULT: print("bro mad"); END
+        Scope scope = new Scope(null);
+        scope.defineVariable("x", true, Environment.create(new BigInteger("10")));
+
+        List<Ast.Statement> statement_5 = Arrays.asList(
+                new Ast.Statement.Expression(new Ast.Expression.Function("print", Arrays.asList(new Ast.Expression.Literal("yes"))))
+        );
+
+        List<Ast.Statement> statement_1 = Arrays.asList(
+                new Ast.Statement.Expression(new Ast.Expression.Function("print", Arrays.asList(new Ast.Expression.Literal("no"))))
+        );
+
+        List<Ast.Statement.Case> cases = Arrays.asList(
+                new Ast.Statement.Case(Optional.of(new Ast.Expression.Literal(new BigInteger("5"))), statement_5),
+                new Ast.Statement.Case(Optional.of(new Ast.Expression.Literal(new BigInteger("1"))), statement_1),
+                new Ast.Statement.Case(Optional.empty(), Arrays.asList(new Ast.Statement.Expression(new Ast.Expression.Function("print", Arrays.asList(new Ast.Expression.Literal("bro mad"))))))
+        );
+
+        Ast.Statement.Switch ast = new Ast.Statement.Switch(new Ast.Expression.Access(Optional.empty(), "x"), cases);
+
+        PrintStream sysout = System.out;
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(out));
+        try {
+            test(ast, Environment.NIL.getValue(), scope);
+            Assertions.assertEquals("bro mad" + System.lineSeparator(), out.toString());
+        } finally {
+            System.setOut(sysout);
+        }
+    }
 
     @Test
     void testWhileStatement() {
