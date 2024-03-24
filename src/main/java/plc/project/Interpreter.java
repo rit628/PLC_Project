@@ -70,6 +70,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
                     visit(stmt);
                 }
             } catch (Return e) {
+                scope = oldScope;
                 return e.value;
             }
             scope = oldScope;
