@@ -255,8 +255,8 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
         }
 
         if (operator.equals("<") || operator.equals(">")) {
-            Environment.PlcObject right = visit(ast.getRight());
             Environment.PlcObject left = visit(ast.getLeft());
+            Environment.PlcObject right = visit(ast.getRight());
             int result = 0;
 
             if (left.getValue().getClass() == BigInteger.class) {
@@ -294,8 +294,8 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
         // THis is for ==/!= operations
         if (operator.equals("==") || operator.equals("!=")) {
-            Environment.PlcObject right = visit(ast.getRight());
             Environment.PlcObject left = visit(ast.getLeft());
+            Environment.PlcObject right = visit(ast.getRight());
             Boolean is_equal = left.getValue().equals(right.getValue());
             if (operator.equals("!=")) {
                 return Environment.create(!is_equal);
@@ -306,8 +306,8 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
         // This is for */- operations
         if (operator.equals("*") || operator.equals("-")) {
-            Environment.PlcObject right = visit(ast.getRight());
             Environment.PlcObject left = visit(ast.getLeft());
+            Environment.PlcObject right = visit(ast.getRight());
             if (left.getValue().getClass() == BigInteger.class || left.getValue().getClass() == BigDecimal.class) {
 
                 if (left.getValue().getClass() == BigInteger.class) {
@@ -342,8 +342,8 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
         //This is for / operation
 
         if (operator.equals("/")) {
-            Environment.PlcObject right = visit(ast.getRight());
             Environment.PlcObject left = visit(ast.getLeft());
+            Environment.PlcObject right = visit(ast.getRight());
             if (left.getValue().getClass() == BigInteger.class || left.getValue().getClass() == BigDecimal.class) {
 
                 if (left.getValue().getClass() == BigInteger.class) {
@@ -373,8 +373,8 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
         }
 
         if (operator.equals("^")) {
-            Environment.PlcObject right = visit(ast.getRight());
             Environment.PlcObject left = visit(ast.getLeft());
+            Environment.PlcObject right = visit(ast.getRight());
             if (left.getValue().getClass() == BigInteger.class) {
                 BigInteger left_val = (BigInteger) left.getValue();
                 BigInteger right_val = requireType(BigInteger.class, right);
@@ -406,8 +406,8 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
         // THIS IS FOR ADDITION
         if (operator.equals("+")) {
-            Environment.PlcObject right = visit(ast.getRight());
             Environment.PlcObject left = visit(ast.getLeft());
+            Environment.PlcObject right = visit(ast.getRight());
 
             // String Concatenation
             if (left.getValue().getClass() == String.class || right.getValue().getClass() == String.class) {
