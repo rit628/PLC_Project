@@ -283,9 +283,9 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
             } else {
                 if (result > 0) {
-                    return Environment.create(false);
-                } else {
                     return Environment.create(true);
+                } else {
+                    return Environment.create(false);
                 }
 
             }
@@ -497,4 +497,3 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     }
 }
-
