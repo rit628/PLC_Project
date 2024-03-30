@@ -1,5 +1,6 @@
 package plc.project;
 
+import org.checkerframework.checker.units.qual.m;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -393,6 +394,11 @@ public final class AnalyzerTests {
 
     private static Stream<Arguments> testLiteralExpression() {
         return Stream.of(
+                Arguments.of("Nil",
+                        // NIL
+                        new Ast.Expression.Literal(null),
+                        init(new Ast.Expression.Literal(null), ast -> ast.setType(Environment.Type.NIL))
+                ),
                 Arguments.of("Boolean",
                         // TRUE
                         new Ast.Expression.Literal(true),
@@ -406,6 +412,36 @@ public final class AnalyzerTests {
                 Arguments.of("Integer Invalid",
                         // 9223372036854775807
                         new Ast.Expression.Literal(BigInteger.valueOf(Long.MAX_VALUE)),
+                        null
+                ),
+                Arguments.of("Negative Integer Invalid",
+                        // -9223372036854775808
+                        new Ast.Expression.Literal(BigInteger.valueOf(Long.MIN_VALUE)),
+                        null
+                ),
+                Arguments.of("Decimal Valid",
+                        // 1.7976931348623157E308
+                        new Ast.Expression.Literal(BigDecimal.valueOf(Double.MAX_VALUE)),
+                        init(new Ast.Expression.Literal(BigDecimal.valueOf(Double.MAX_VALUE)), ast -> ast.setType(Environment.Type.DECIMAL))
+                ),
+                Arguments.of("Decimal Invalid",
+                        // 1.7976931348623157E309
+                        new Ast.Expression.Literal(BigDecimal.valueOf(Double.MAX_VALUE).multiply(BigDecimal.valueOf(10))),
+                        null
+                ),
+                Arguments.of("Negative Decimal Invalid",
+                        // -1.7976931348623157E309
+                        new Ast.Expression.Literal(BigDecimal.valueOf(Double.MAX_VALUE).multiply(BigDecimal.valueOf(-10))),
+                        null
+                ),
+                Arguments.of("Small Decimal Invalid",
+                        // 4.9E-325
+                        new Ast.Expression.Literal(BigDecimal.valueOf(Double.MIN_VALUE).multiply(BigDecimal.valueOf(.1))),
+                        null
+                ),
+                Arguments.of("Small Negative Decimal Invalid",
+                        // 4.9E-325
+                        new Ast.Expression.Literal(BigDecimal.valueOf(Double.MIN_VALUE).multiply(BigDecimal.valueOf(-.1))),
                         null
                 )
         );
