@@ -137,26 +137,88 @@ public final class Analyzer implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Statement.If ast) {
-        throw new UnsupportedOperationException();  // TODO
+        Ast.Expression cond = ast.getCondition();
+        visit(cond);
+        if(cond.getType() != Environment.Type.BOOLEAN){
+            throw new RuntimeException("Condition not a boolean");
+        }
+
+        if(ast.getThenStatements().isEmpty()) {
+            throw new RuntimeException("Then Not present");
+        }
+        else{
+            for(Ast.Statement stmt : ast.getThenStatements()){
+                visit(stmt);
+            }
+            for(Ast.Statement stmt : ast.getElseStatements()){
+                visit(stmt);
+            }
+        }
+        visit(cond);
+
+        return null;
     }
 
     @Override
     public Void visit(Ast.Statement.Switch ast) {
-        throw new UnsupportedOperationException();  // TODO
+        visit(ast.getCondition());
+        Environment.Type cond_type = ast.getCondition().getType();
+        List<Ast.Statement.Case> switch_cases = ast.getCases();
+        Boolean default_reached = false;
+
+
+        // Perform the validation checks:
+        for(Ast.Statement.Case cs : switch_cases){
+            if(cs.getValue().isPresent()) {
+                Ast.Expression case_value = cs.getValue().get();
+                visit(case_value);
+                Environment.Type case_cond = case_value.getType();
+                if(cond_type != case_cond){
+                    throw new RuntimeException("Case type does not match switch condition type");
+                }
+                else{
+                    visit(cs);
+                }
+            }
+            // Handle the default Condition:
+            else{
+                default_reached = true;
+                visit(cs);
+            }
+        }
+
+        if(!default_reached){
+            throw new RuntimeException("Non Valued Default found");
+        }
+        return null;
+
     }
 
     @Override
     public Void visit(Ast.Statement.Case ast) {
-        throw new UnsupportedOperationException();  // TODO
+        scope = new Scope(scope);
+        for (Ast.Statement.Statement stmt : ast.getStatements()){
+            visit(stmt);
+        }
+        scope = scope.getParent();
+        return null;
     }
 
     @Override
     public Void visit(Ast.Statement.While ast) {
         Ast.Expression cond = ast.getCondition();
+        List<Ast.Statement> statements = ast.getStatements();
         visit(cond);
 
         if(cond.getType() == Environment.Type.BOOLEAN){
-            System.out.println("Good");
+            scope = new Scope(scope);
+            for(Ast.Statement st : statements){
+                visit(st);
+            }
+            scope = scope.getParent();
+        }
+        else{
+            throw new RuntimeException("Bad Condition");
         }
 
         return null;
@@ -219,7 +281,70 @@ public final class Analyzer implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Expression.Binary ast) {
-        throw new UnsupportedOperationException();  // TODO
+        visit(ast.getLeft());
+        visit(ast.getRight());
+        String operator = ast.getOperator();
+        if(operator.equals("&&") || operator.equals("||")){
+            if(ast.getLeft().getType() != Environment.Type.BOOLEAN || ast.getRight().getType() != Environment.Type.BOOLEAN){
+                throw new RuntimeException("Operator Failed");
+            }
+            else{
+                ast.setType(Environment.Type.BOOLEAN);
+            }
+        }
+        else if(operator.equals("<") || operator.equals(">") || operator.equals("==")){
+            if(ast.getLeft().getType() != Environment.Type.COMPARABLE || ast.getLeft().getType() != Environment.Type.COMPARABLE){
+                throw new RuntimeException("Operator Failed");
+            }
+            else{
+                if (ast.getLeft().getType() == ast.getLeft().getType()) {
+                    ast.setType(Environment.Type.BOOLEAN);
+                }
+                else{
+                    throw new RuntimeException("Operators of not same type");
+                }
+            }
+        }
+        else if(operator.equals("+")){
+            if(ast.getLeft().getType() == Environment.Type.STRING || ast.getLeft().getType() == Environment.Type.STRING){
+                ast.setType(Environment.Type.STRING);
+            }
+            else if(ast.getLeft().getType() == ast.getRight().getType()){
+                if(ast.getLeft().getType() == Environment.Type.INTEGER){
+                    ast.setType(Environment.Type.INTEGER);
+                }
+                else if(ast.getLeft().getType() == Environment.Type.DECIMAL){
+                    ast.setType(Environment.Type.DECIMAL);
+                }
+                else{
+                    throw new RuntimeException("Unacceptable addition");
+                }
+            }
+            else{
+                throw new RuntimeException("Uncompatible data types for addition");
+            }
+        }
+        else if(operator.equals("-") || operator.equals("*") || operator.equals("/")){
+            if(ast.getLeft().getType() == Environment.Type.INTEGER || ast.getLeft().getType() == Environment.Type.DECIMAL){
+                if(ast.getRight().getType() == ast.getLeft().getType()){
+                    ast.setType(ast.getLeft().getType());
+                }
+            }
+            else{
+                throw new RuntimeException("LHS is not of acceptable type");
+            }
+
+        }
+        else if(operator.equals("^")){
+            if(ast.getLeft().getType() == Environment.Type.INTEGER && ast.getRight().getType() == Environment.Type.INTEGER){
+                ast.setType(Environment.Type.INTEGER);
+            }
+            else{
+                throw new RuntimeException("Unacceptable exponentiation type");
+            }
+
+        }
+        return null;
     }
 
     @Override
