@@ -131,11 +131,17 @@ public final class Parser {
      */
     public Ast.Global parseList() throws ParseException {
         match(reservedList);
-        if (!peek(Token.Type.IDENTIFIER, "=")) {
-            match(Token.Type.IDENTIFIER); // Updates fail index if valid identifier is given
+        if (!peek(Token.Type.IDENTIFIER, ":")) {
+            match(Token.Type.IDENTIFIER);
             throw new ParseException("Invalid List Declaration.", getFailIndex());
         }
         String name = tokens.get(0).getLiteral();
+        match(Token.Type.IDENTIFIER, ":");
+        if (!peek(Token.Type.IDENTIFIER, "=")) {
+            match(Token.Type.IDENTIFIER); // Updates fail index if valid identifier is given
+            throw new ParseException("Missing Type Annotation.", getFailIndex());
+        }
+        String typeName = tokens.get(0).getLiteral();
         match(Token.Type.IDENTIFIER, "=");
         if (!match("[")) {
             throw new ParseException("Missing Opening Bracket.", getFailIndex());
@@ -147,7 +153,7 @@ public final class Parser {
         if (!match("]")) {
             throw new ParseException("Unclosed List Declaration.", getFailIndex());
         }
-        return new Ast.Global(name, true, Optional.of(new Ast.Expression.PlcList(values)));
+        return new Ast.Global(name, typeName, true, Optional.of(new Ast.Expression.PlcList(values)));
     }
 
     /**
@@ -156,15 +162,27 @@ public final class Parser {
      */
     public Ast.Global parseMutable() throws ParseException {
         match(reservedVar);
-        if (!match(Token.Type.IDENTIFIER)) {
-            throw new ParseException("Invalid Identifier.", getFailIndex());
+        if(!peek(Token.Type.IDENTIFIER, ":")){
+            match(Token.Type.IDENTIFIER);
+            throw new ParseException("Inavlid Mutable Decalaration",getFailIndex()); 
         }
-        String name = tokens.get(-1).getLiteral();
+        
+        String name = tokens.get(0).getLiteral();
+        match(Token.Type.IDENTIFIER, ":"); 
+
+        if(!peek(Token.Type.IDENTIFIER, "=")){
+            match(Token.Type.IDENTIFIER); 
+            throw new ParseException("Invalid Mutable Decalaration", getFailIndex());
+        }
+
+        String type = tokens.get(0).getLiteral();
+        match(Token.Type.IDENTIFIER);
+        
         Optional<Ast.Expression> value = Optional.empty();
         if (match("=")) {
             value = Optional.of(parseExpression());
         }
-        return new Ast.Global(name, true, value);
+        return new Ast.Global(name, type, true, value);
     }
 
     /**
@@ -173,14 +191,23 @@ public final class Parser {
      */
     public Ast.Global parseImmutable() throws ParseException {
         match(reservedVal);
+        if(!peek(Token.Type.IDENTIFIER, ":")){
+            match(Token.Type.IDENTIFIER); 
+            throw new ParseException("Invalid Immutable Declaration", getFailIndex()); 
+        }
+        String name = tokens.get(0).getLiteral();
+        match(Token.Type.IDENTIFIER, ":");
+
         if (!peek(Token.Type.IDENTIFIER, "=")) {
             match(Token.Type.IDENTIFIER); // Updates fail index if valid identifier is given
             throw new ParseException("Invalid Immutable Declaration.", getFailIndex());
         }
-        String name = tokens.get(0).getLiteral();
+
+        String type = tokens.get(0).getLiteral();     
         match(Token.Type.IDENTIFIER, "=");
+        
         Optional<Ast.Expression> value = Optional.of(parseExpression());
-        return new Ast.Global(name, false, value);
+        return new Ast.Global(name, type, false, value);
     }
 
     /**
@@ -197,20 +224,31 @@ public final class Parser {
         String name = tokens.get(0).getLiteral();
         match(Token.Type.IDENTIFIER, "(");
         List<String> params = new ArrayList<String>();
+        List<String> paramTypes = new ArrayList<String>();
+        Optional<String> returnType = Optional.empty();
 
         // Parses parameter list
         if (!peek(")")) {  // Checks if function has no args ex: f()
             do {
-                if (match(Token.Type.IDENTIFIER)) {
-                    params.add(tokens.get(-1).getLiteral());
+                if (peek(Token.Type.IDENTIFIER, ":", Token.Type.IDENTIFIER)) {
+                    params.add(tokens.get(0).getLiteral());
+                    paramTypes.add(tokens.get(2).getLiteral());
+                    match(Token.Type.IDENTIFIER, ":", Token.Type.IDENTIFIER);
                 }
                 else {
+                    match(Token.Type.IDENTIFIER, ":");
+                    match(Token.Type.IDENTIFIER);
                     throw new ParseException("Invalid Function Parameter.", getFailIndex());
                 }
             } while (match(","));
         }
         if (!match(")")) {  // Checks for missing closing parenthesis
             throw new ParseException("Unclosed Function Parameter List.", getFailIndex());
+        }
+        
+        // Parses return type annotation
+        if (match(":", Token.Type.IDENTIFIER)) {
+            returnType = Optional.of(tokens.get(-1).getLiteral());
         }
 
         // Parses function implementation
@@ -221,7 +259,7 @@ public final class Parser {
         if (!match(reservedEnd)) {
             throw new ParseException("Missing " + reservedEnd + " Keyword.", getFailIndex());
         }
-        return new Ast.Function(name, params, statements);
+        return new Ast.Function(name, params, paramTypes, returnType, statements);
     }
 
     /**
@@ -281,18 +319,24 @@ public final class Parser {
      */
     public Ast.Statement.Declaration parseDeclarationStatement() throws ParseException {
         match(reservedLet);
+        
         if (!match(Token.Type.IDENTIFIER)) {
             throw new ParseException("Invalid Identifier.", getFailIndex());
         }
         String var_name = tokens.get(-1).getLiteral();
         Optional<Ast.Expression> RHS_val = Optional.empty();
+        Optional<String> typeName = Optional.empty();
+        
+        if (match(":", Token.Type.IDENTIFIER)) {
+            typeName = Optional.of(tokens.get(-1).getLiteral());
+        }
         
         if (match("=")){
             RHS_val = Optional.of(parseExpression());
         }
         
         if(match(";")) {
-            Ast.Statement.Declaration DecStat = new Ast.Statement.Declaration(var_name, RHS_val);
+            Ast.Statement.Declaration DecStat = new Ast.Statement.Declaration(var_name, typeName, RHS_val);
             return DecStat;
         }
         else {
@@ -377,7 +421,8 @@ public final class Parser {
     public Ast.Statement.While parseWhileStatement() throws ParseException {
         match(reservedWhile);
         Ast.Expression condition = parseExpression();
-        if (!match(reservedDo)) {            throw new ParseException("Missing " + reservedDo + " Keyword", getFailIndex());
+        if (!match(reservedDo)) {            
+            throw new ParseException("Missing " + reservedDo + " Keyword", getFailIndex());
         }
         List<Ast.Statement> statements = parseBlock();
         if (!match(reservedEnd)) {
