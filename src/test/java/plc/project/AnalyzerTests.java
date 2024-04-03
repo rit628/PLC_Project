@@ -94,6 +94,20 @@ public final class AnalyzerTests {
                         // VAR name: Unknown;
                         new Ast.Global("name", "Unknown", true, Optional.empty()),
                         null
+                ),
+                Arguments.of("List Valid",
+                        // LIST list: Any = [1, 'c', 1.0]
+                        new Ast.Global("list", "Any", true, Optional.of(new Ast.Expression.PlcList(Arrays.asList(new Ast.Expression.Literal(BigInteger.ONE), new Ast.Expression.Literal(Character.valueOf('c')), new Ast.Expression.Literal(BigDecimal.ONE))))),
+                        init(new Ast.Global("list", "Any", true, Optional.of(
+                                init(new Ast.Expression.PlcList(
+                                        Arrays.asList(
+                                                init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER)),
+                                                init(new Ast.Expression.Literal(Character.valueOf('c')), ast -> ast.setType(Environment.Type.CHARACTER)),
+                                                init(new Ast.Expression.Literal(BigDecimal.ONE), ast -> ast.setType(Environment.Type.DECIMAL)))),
+                                        ast -> ast.setType(Environment.Type.ANY)
+                                ))),
+                                ast -> ast.setVariable(new Environment.Variable("list", "list", Environment.Type.ANY, true, Environment.NIL))
+                        )
                 )
         );
     }
@@ -145,6 +159,36 @@ public final class AnalyzerTests {
                                 ))
                         )),
                         null
+                ),
+                Arguments.of("Recursive Function",
+                        // FUN update(num: Integer): Integer DO IF num < 3: DO RETURN update(num + 1); RETURN num;
+                        new Ast.Function("update", Arrays.asList("num"), Arrays.asList("Integer"), Optional.of("Integer"), Arrays.asList(
+                                new Ast.Statement.If(new Ast.Expression.Binary("<", new Ast.Expression.Access(Optional.empty(), "num"), new Ast.Expression.Literal(BigInteger.valueOf(3))), Arrays.asList(
+                                new Ast.Statement.Return(new Ast.Expression.Function("update", Arrays.asList(new Ast.Expression.Binary("+", new Ast.Expression.Access(Optional.empty(), "num"), new Ast.Expression.Literal(BigInteger.ONE)))))),
+                                Arrays.asList()),
+                                new Ast.Statement.Return(new Ast.Expression.Access(Optional.empty(), "num"))
+                        )),
+                        init(new Ast.Function("update", Arrays.asList("num"), Arrays.asList("Integer"), Optional.of("Integer"), Arrays.asList(
+                                new Ast.Statement.If(
+                                        init(new Ast.Expression.Binary("<",
+                                                init(new Ast.Expression.Access(Optional.empty(), "num"), ast -> ast.setVariable(new Environment.Variable("num", "num", Environment.Type.INTEGER, true, Environment.NIL))),
+                                                init(new Ast.Expression.Literal(BigInteger.valueOf(3)), ast -> ast.setType(Environment.Type.INTEGER))),
+                                             ast -> ast.setType(Environment.Type.BOOLEAN)
+                                        ),
+                                        Arrays.asList(
+                                                new Ast.Statement.Return(
+                                                        init(new Ast.Expression.Function("update", Arrays.asList(
+                                                                init(new Ast.Expression.Binary("+", 
+                                                                        init(new Ast.Expression.Access(Optional.empty(), "num"), ast -> ast.setVariable(new Environment.Variable("num", "num", Environment.Type.INTEGER, true, Environment.NIL))),
+                                                                        init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER))),
+                                                                ast -> ast.setType(Environment.Type.INTEGER)
+                                                                ))),
+                                                        ast -> ast.setFunction(new Environment.Function("update", "update", Arrays.asList(Environment.Type.INTEGER), Environment.Type.INTEGER, args -> Environment.NIL))))),
+                                        Arrays.asList()),
+                                new Ast.Statement.Return(
+                                        init(new Ast.Expression.Access(Optional.empty(), "num"), ast -> ast.setVariable(new Environment.Variable("num", "num", Environment.Type.INTEGER, true, Environment.NIL)))
+                                        )
+                        )), ast -> ast.setFunction(new Environment.Function("update", "update", Arrays.asList(Environment.Type.INTEGER), Environment.Type.INTEGER, args -> Environment.NIL)))
                 )
         );
     }
@@ -282,6 +326,34 @@ public final class AnalyzerTests {
                                 Arrays.asList()
                         ),
                         null
+                ),
+                Arguments.of("Valid condition 2",
+                        // IF 1 < 2 DO print(1) ELSE print(2); END
+                        new Ast.Statement.If(
+                                new Ast.Expression.Binary(">", new Ast.Expression.Literal(BigInteger.ONE), new Ast.Expression.Literal(BigInteger.TWO)),
+                                Arrays.asList(new Ast.Statement.Expression(
+                                        new Ast.Expression.Function("print", Arrays.asList(
+                                                new Ast.Expression.Literal(BigInteger.ONE)
+                                        ))
+                                )),
+                                Arrays.asList(new Ast.Statement.Expression(
+                                        new Ast.Expression.Function("print", Arrays.asList(
+                                                new Ast.Expression.Literal(BigInteger.TWO)
+                                        ))
+                                ))
+                        ),
+                        new Ast.Statement.If(
+                                init(new Ast.Expression.Binary(">", init(new Ast.Expression.Literal(BigInteger.ONE), ast->ast.setType(Environment.Type.INTEGER)), init(new Ast.Expression.Literal(BigInteger.TWO), ast->ast.setType(Environment.Type.INTEGER))), ast-> ast.setType(Environment.Type.BOOLEAN)),
+                                Arrays.asList(new Ast.Statement.Expression(
+                                        init(new Ast.Expression.Function("print", Arrays.asList(
+                                                init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER))
+                                        )), ast -> ast.setFunction(new Environment.Function("print", "System.out.println", Arrays.asList(Environment.Type.ANY), Environment.Type.NIL, args -> Environment.NIL))))
+                                ),
+                                Arrays.asList(new Ast.Statement.Expression(
+                                        init(new Ast.Expression.Function("print", Arrays.asList(
+                                                init(new Ast.Expression.Literal(BigInteger.TWO), ast -> ast.setType(Environment.Type.INTEGER))
+                                        )), ast -> ast.setFunction(new Environment.Function("print", "System.out.println", Arrays.asList(Environment.Type.ANY), Environment.Type.NIL, args -> Environment.NIL)))))
+                        )
                 )
         );
     }
@@ -501,6 +573,25 @@ public final class AnalyzerTests {
                         new Ast.Expression.Binary("+",
                                 new Ast.Expression.Literal(BigInteger.ONE),
                                 new Ast.Expression.Literal(BigDecimal.ONE)
+                        ),
+                        null
+                ),
+                Arguments.of("Integer Exponentiation",
+                        // 2^3
+                        new Ast.Expression.Binary("^",
+                                new Ast.Expression.Literal(BigInteger.TWO),
+                                new Ast.Expression.Literal(BigInteger.valueOf(3))
+                        ),
+                        init(new Ast.Expression.Binary("^",
+                                init(new Ast.Expression.Literal(BigInteger.TWO), ast -> ast.setType(Environment.Type.INTEGER)),
+                                init(new Ast.Expression.Literal(BigInteger.valueOf(3)), ast -> ast.setType(Environment.Type.INTEGER))        
+                        ), ast -> ast.setType(Environment.Type.INTEGER))
+                ),
+                Arguments.of("Decimal Exponentiation",
+                        // 2.0^5.0
+                        new Ast.Expression.Binary("^",
+                                new Ast.Expression.Literal(BigDecimal.TWO),
+                                new Ast.Expression.Literal(BigDecimal.valueOf(5.0))
                         ),
                         null
                 )

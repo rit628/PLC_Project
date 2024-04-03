@@ -51,10 +51,13 @@ public final class Analyzer implements Ast.Visitor<Void> {
         Ast.Expression value = null;
         if (ast.getValue().isPresent()) {
             value = ast.getValue().get();
+            if (value instanceof Ast.Expression.PlcList) {
+                ((Ast.Expression.PlcList)value).setType(type);
+            }
             visit(value);
             requireAssignable(type, value.getType());
         }
-        ast.setVariable(scope.defineVariable(name, name, type, mutable, Environment.create(value)));
+        ast.setVariable(scope.defineVariable(name, name, type, mutable, Environment.NIL));
         return null;
     }
 
@@ -293,7 +296,9 @@ public final class Analyzer implements Ast.Visitor<Void> {
             }
         }
         else if(operator.equals("<") || operator.equals(">") || operator.equals("==")){
-            if(ast.getLeft().getType() != Environment.Type.COMPARABLE || ast.getLeft().getType() != Environment.Type.COMPARABLE){
+            if( ast.getLeft().getType().getScope().getParent() != Environment.Type.COMPARABLE.getScope() ||
+                ast.getRight().getType().getScope().getParent() != Environment.Type.COMPARABLE.getScope()
+            ) {
                 throw new RuntimeException("Operator Failed");
             }
             else{
@@ -306,7 +311,7 @@ public final class Analyzer implements Ast.Visitor<Void> {
             }
         }
         else if(operator.equals("+")){
-            if(ast.getLeft().getType() == Environment.Type.STRING || ast.getLeft().getType() == Environment.Type.STRING){
+            if(ast.getLeft().getType() == Environment.Type.STRING || ast.getRight().getType() == Environment.Type.STRING){
                 ast.setType(Environment.Type.STRING);
             }
             else if(ast.getLeft().getType() == ast.getRight().getType()){
