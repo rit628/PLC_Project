@@ -162,18 +162,14 @@ public final class Parser {
      */
     public Ast.Global parseMutable() throws ParseException {
         match(reservedVar);
-        if(!peek(Token.Type.IDENTIFIER, ":")){
+        if(!peek(Token.Type.IDENTIFIER, ":", Token.Type.IDENTIFIER)){
+            match(Token.Type.IDENTIFIER, ":");
             match(Token.Type.IDENTIFIER);
             throw new ParseException("Inavlid Mutable Decalaration",getFailIndex()); 
         }
         
         String name = tokens.get(0).getLiteral();
         match(Token.Type.IDENTIFIER, ":"); 
-
-        if(!peek(Token.Type.IDENTIFIER, "=")){
-            match(Token.Type.IDENTIFIER); 
-            throw new ParseException("Invalid Mutable Decalaration", getFailIndex());
-        }
 
         String type = tokens.get(0).getLiteral();
         match(Token.Type.IDENTIFIER);
