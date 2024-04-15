@@ -49,6 +49,9 @@ public final class Generator implements Ast.Visitor<Void> {
             newline(indent);
             print(global);
         }
+        if (ast.getGlobals().size() > 0) {
+            newline(0);
+        }
         newline(indent);
         int funIndent = indent;
         print("public static void main(String[] args) {");
@@ -63,8 +66,8 @@ public final class Generator implements Ast.Visitor<Void> {
             newline(indent);
             print(function);
             newline(0);
-            newline(0);
         }
+        newline(0);
         print("}");        
         return null;
     }

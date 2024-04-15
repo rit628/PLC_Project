@@ -1,0 +1,5 @@
+VAR x: Integer;
+VAR y: Integer = 10;
+FUN main(): Integer DO
+    RETURN x + y;
+END

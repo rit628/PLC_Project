@@ -1,0 +1,7 @@
+FUN main(): Integer DO
+    LET num = 0;
+    SWITCH num
+    DEFAULT
+        print("default branch.");
+    END
+END
