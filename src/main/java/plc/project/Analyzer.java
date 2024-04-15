@@ -295,19 +295,14 @@ public final class Analyzer implements Ast.Visitor<Void> {
                 ast.setType(Environment.Type.BOOLEAN);
             }
         }
-        else if(operator.equals("<") || operator.equals(">") || operator.equals("==")){
-            if( ast.getLeft().getType().getScope().getParent() != Environment.Type.COMPARABLE.getScope() ||
-                ast.getRight().getType().getScope().getParent() != Environment.Type.COMPARABLE.getScope()
-            ) {
-                throw new RuntimeException("Operator Failed");
+        else if(operator.equals("<") || operator.equals(">") || operator.equals("==") || operator.equals("!=")){
+            requireAssignable(Environment.Type.COMPARABLE, ast.getLeft().getType());
+            requireAssignable(Environment.Type.COMPARABLE, ast.getRight().getType());
+            if (ast.getLeft().getType() == ast.getRight().getType()) {
+                ast.setType(Environment.Type.BOOLEAN);
             }
             else{
-                if (ast.getLeft().getType() == ast.getLeft().getType()) {
-                    ast.setType(Environment.Type.BOOLEAN);
-                }
-                else{
-                    throw new RuntimeException("Operators of not same type");
-                }
+                throw new RuntimeException("Operators of not same type");
             }
         }
         else if(operator.equals("+")){
@@ -333,6 +328,9 @@ public final class Analyzer implements Ast.Visitor<Void> {
             if(ast.getLeft().getType() == Environment.Type.INTEGER || ast.getLeft().getType() == Environment.Type.DECIMAL){
                 if(ast.getRight().getType() == ast.getLeft().getType()){
                     ast.setType(ast.getLeft().getType());
+                }
+                else{
+                    throw new RuntimeException("RHS type is not compatible with LHS type");
                 }
             }
             else{
