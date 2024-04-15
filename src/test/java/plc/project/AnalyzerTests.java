@@ -522,7 +522,9 @@ public final class AnalyzerTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource
     public void testBinaryExpression(String test, Ast.Expression.Binary ast, Ast.Expression.Binary expected) {
-        test(ast, expected, new Scope(null));
+        Scope scope = new Scope(null);
+        scope.defineVariable("comparable", "comparable", Environment.Type.COMPARABLE, true, null);
+        test(ast, expected, scope);
     }
 
     private static Stream<Arguments> testBinaryExpression() {
@@ -592,6 +594,60 @@ public final class AnalyzerTests {
                         new Ast.Expression.Binary("^",
                                 new Ast.Expression.Literal(BigDecimal.TWO),
                                 new Ast.Expression.Literal(BigDecimal.valueOf(5.0))
+                        ),
+                        null
+                ),
+                Arguments.of("GT Different Types",
+                        // 1 > 10.0
+                        new Ast.Expression.Binary(">",
+                                new Ast.Expression.Literal(BigInteger.ONE),
+                                new Ast.Expression.Literal(BigDecimal.TEN)
+                        ),
+                        null
+                ),
+                Arguments.of("GT Comparable",
+                        // comparable > comparable
+                        new Ast.Expression.Binary(">",
+                                new Ast.Expression.Access(Optional.empty(), "comparable"),
+                                new Ast.Expression.Access(Optional.empty(), "comparable")        
+                        ),
+                        init(new Ast.Expression.Binary(">",
+                                init(new Ast.Expression.Access(Optional.empty(), "comparable"), ast -> ast.setVariable(new Environment.Variable("comparable", "comparable", Environment.Type.COMPARABLE, true, null))),
+                                init(new Ast.Expression.Access(Optional.empty(), "comparable"), ast -> ast.setVariable(new Environment.Variable("comparable", "comparable", Environment.Type.COMPARABLE, true, null)))     
+                        ), ast -> ast.setType(Environment.Type.BOOLEAN))
+                ),
+                Arguments.of("Not Equal Same Types",
+                        // 1 != 10
+                        new Ast.Expression.Binary("!=",
+                                new Ast.Expression.Literal(BigInteger.ONE),
+                                new Ast.Expression.Literal(BigInteger.TEN)
+                        ),
+                        init(new Ast.Expression.Binary("!=",
+                                init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER)),
+                                init(new Ast.Expression.Literal(BigInteger.TEN), ast -> ast.setType(Environment.Type.INTEGER))
+                        ), ast -> ast.setType(Environment.Type.BOOLEAN))
+                ),
+                Arguments.of("Not Equal Different Types",
+                        // 1 != 1.0
+                        new Ast.Expression.Binary("!=",
+                                new Ast.Expression.Literal(BigInteger.ONE),
+                                new Ast.Expression.Literal(BigDecimal.ONE)
+                        ),
+                        null
+                ),
+                Arguments.of("Invalid Subtraction Types",
+                        // 1.0 - "1.0"
+                        new Ast.Expression.Binary("-",
+                                new Ast.Expression.Literal(BigDecimal.ONE),
+                                new Ast.Expression.Literal("1.0")
+                        ),
+                        null
+                ),
+                Arguments.of("Mixed Division Types",
+                        // 1.0 / 1
+                        new Ast.Expression.Binary("/",
+                                new Ast.Expression.Literal(BigDecimal.ONE),
+                                new Ast.Expression.Literal(BigInteger.ONE)
                         ),
                         null
                 )
