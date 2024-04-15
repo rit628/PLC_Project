@@ -1,0 +1,15 @@
+FUN main(): Integer DO
+    LET num = 1;
+    WHILE num < 10 DO
+        print(num + "\n");
+        print('\b');
+        print('\n');
+        print('\r');
+        print('\t');
+        print('\\');
+        print('\'');
+        print('\"');
+        print("\b" + "\n" + "\r" + "\t" + "\\" + "\'" + "\"");
+        num = num + 1;
+    END
+END

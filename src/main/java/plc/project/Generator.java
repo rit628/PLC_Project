@@ -29,6 +29,17 @@ public final class Generator implements Ast.Visitor<Void> {
         }
     }
 
+    private String cleanEscapes(String literal) {
+        literal = literal.replace("\\", "\\\\");
+        literal = literal.replace("\b", "\\b");
+        literal = literal.replace("\n", "\\n");
+        literal = literal.replace("\r", "\\r");
+        literal = literal.replace("\t", "\\t");
+        literal = literal.replace("\'", "\\'");
+        literal = literal.replace("\"", "\\\"");
+        return literal;
+    }
+
     @Override
     public Void visit(Ast.Source ast) {
         print("public class Main {");
@@ -227,10 +238,10 @@ public final class Generator implements Ast.Visitor<Void> {
     public Void visit(Ast.Expression.Literal ast) {
     
         if(ast.getType() == Environment.Type.STRING){
-            print("\"",  ast.getLiteral(), "\"");
+            print("\"",  cleanEscapes((String)ast.getLiteral()), "\"");
         }
         else if(ast.getType() == Environment.Type.CHARACTER){
-            print("\'", ast.getLiteral(), "\'");
+            print("\'", cleanEscapes(((Character)ast.getLiteral()).toString()), "\'");
         }
         else{
             print(ast.getLiteral());
