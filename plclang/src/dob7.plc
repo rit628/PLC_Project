@@ -1,0 +1,10 @@
+VAR x: Integer;
+VAR y: Decimal;
+VAR z: String;
+VAL immute : Any = 3;
+LIST ls : Any = [1, "kmp", 'c', 9.0];
+FUN main(): Integer DO 
+    print(2^12 + 1);
+    print(2^(12 + 1));
+    print((2 + 1)^12);
+END
