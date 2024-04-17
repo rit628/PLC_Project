@@ -5,7 +5,12 @@ FUN main() : Integer DO
         print("num is 1.");
     CASE 2:
         print("num is 2.");
+    CASE 3:
     DEFAULT
         print("num is greater than 2.");
+    END
+    IF num > 1 DO 
+    print(num^99);
+    ELSE
     END
 END

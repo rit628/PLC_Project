@@ -1,6 +1,7 @@
 package plc.project;
 
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.List;
 
 public final class Generator implements Ast.Visitor<Void> {
@@ -40,33 +41,86 @@ public final class Generator implements Ast.Visitor<Void> {
         return literal;
     }
 
-    @Override
-    public Void visit(Ast.Source ast) {
-        print("public class Main {");
-        newline(0);
+    private void printGlobals(List<Ast.Global> globals) {
+        int topIndent = indent;
         indent++;
-        for (Ast.Global global : ast.getGlobals()) {
+        for (Ast.Global global : globals) {
             newline(indent);
             print(global);
         }
-        if (ast.getGlobals().size() > 0) {
+        if (globals.size() > 0) {
             newline(0);
         }
-        newline(indent);
-        int funIndent = indent;
-        print("public static void main(String[] args) {");
+        indent = topIndent;
+    }
+
+    private void printMain() {
+        int topIndent = indent;
         indent++;
         newline(indent);
+        print("public static void main(String[] args) {");
+        newline(indent + 1);
         print("System.exit(new Main().main());");
-        indent = funIndent;
         newline(indent);
         print("}");
         newline(0);
-        for (Ast.Function function : ast.getFunctions()) {
+        indent = topIndent;
+    }
+
+    private void printFunctions(List<Ast.Function> functions) {
+        int topIndent = indent;
+        indent++;
+        for (Ast.Function function : functions) {
             newline(indent);
             print(function);
             newline(0);
         }
+        indent = topIndent;
+    }
+
+    private void printBlock(List<? extends Ast.Statement> statements) {
+        int topIndent = indent;
+        indent++;
+        for (Ast.Statement statement : statements) {
+            newline(indent);
+            print(statement);
+        }
+        indent = topIndent;
+    }
+
+    private void printBracedBlock(List<? extends Ast.Statement> statements) {
+        print(" {");
+        printBlock(statements);
+        if (statements.size() > 0) {
+            newline(indent);
+        }
+        print("}");
+    }
+
+    private void printCommaSeperatedList(List<? extends Object> elements) {
+        for (int i = 0; i < elements.size(); i++) {
+            print(elements.get(i));
+            if (i != elements.size() - 1) {
+                print(", ");
+            }
+        }
+    }
+
+    private void printFunctionParameters(List<String> params, List<Environment.Type> types) {
+        List<String> paramList = new ArrayList<String>();
+        for (int i = 0; i < params.size(); i++) {
+            paramList.add(types.get(i).getJvmName() + ' ' + params.get(i));
+        }
+        printCommaSeperatedList(paramList);
+    }
+
+    @Override
+    public Void visit(Ast.Source ast) {
+        print("public class Main {");
+        newline(0);
+        printGlobals(ast.getGlobals());
+        printMain();
+        printFunctions(ast.getFunctions());
         newline(0);
         print("}");        
         return null;
@@ -74,18 +128,21 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Global ast) {
-        if (ast.getValue().isPresent() && ast.getValue().get() instanceof Ast.Expression.PlcList) {
-            print(ast.getVariable().getType().getJvmName(), "[] ", ast.getVariable().getJvmName(), " = ", ast.getValue().get());
+        String typeName = ast.getVariable().getType().getJvmName();
+        String variableName = ast.getVariable().getJvmName();
+        if (ast.getValue().isEmpty()) {
+            print(typeName, ' ', variableName, ';');
+            return null;
+        }
+        Ast.Expression value = ast.getValue().get();
+        if (value instanceof Ast.Expression.PlcList) {
+            print(typeName, "[] ", variableName, " = ", value);
         }
         else if (ast.getMutable()) {
-            print(ast.getVariable().getType().getJvmName(), ' ', ast.getVariable().getJvmName());
-            if (ast.getValue().isPresent()) {
-                print(" = ", ast.getValue().get());
-            }
+            print(typeName, ' ', variableName, " = ", value);
         }
         else{
-            print("final ",  ast.getVariable().getType().getJvmName(),  ' ');
-            print(ast.getVariable().getJvmName(),  " = ",  ast.getValue().get());
+            print("final ",  typeName,  ' ', variableName,  " = ",  value);
         }
         print(';');
         return null;
@@ -94,28 +151,12 @@ public final class Generator implements Ast.Visitor<Void> {
     @Override
     public Void visit(Ast.Function ast) {
         Environment.Function function = ast.getFunction();
-        print(function.getReturnType().getJvmName(), ' ', function.getJvmName(), '(');
         List<Environment.Type> paramTypes = function.getParameterTypes();
         List<String> params = ast.getParameters();
-        for (int i = 0; i < function.getArity(); i++) {
-            print(paramTypes.get(i).getJvmName(), ' ', params.get(i));
-            if (i != function.getArity() - 1) {
-                print(", ");
-            }
-        }
-        print(") {");
-        int topIndent = indent;
-        indent++;
-        List<Ast.Statement> statements = ast.getStatements();
-        for (Ast.Statement statement : statements) {
-            newline(indent);
-            print(statement);
-        }
-        indent = topIndent;
-        if (statements.size() > 0) {
-            newline(indent);
-        }
-        print("}");
+        print(function.getReturnType().getJvmName(), ' ', function.getJvmName(), '(');
+        printFunctionParameters(params, paramTypes);
+        print(")");
+        printBracedBlock(ast.getStatements());
         return null;
     }
 
@@ -127,7 +168,9 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Statement.Declaration ast) {
-        print(ast.getVariable().getType().getJvmName(), ' ', ast.getVariable().getJvmName());
+        String typeName = ast.getVariable().getType().getJvmName();
+        String variableName = ast.getVariable().getJvmName();
+        print(typeName, ' ', variableName);
         if (ast.getValue().isPresent()) {
             print(" = ", ast.getValue().get());
         }
@@ -143,91 +186,43 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Statement.If ast) {
-        int past_indent = indent;
-
-        print("if (", ast.getCondition(), ") {");
-        indent += 1;
-        for(Ast.Statement thenStmt : ast.getThenStatements()){
-            newline(indent);
-            print(thenStmt);
-            
-        }
-        indent -= 1;
-        newline(indent);
-        print("}");
+        print("if (", ast.getCondition(), ")");
+        printBracedBlock(ast.getThenStatements());
 
         if(!ast.getElseStatements().isEmpty()){
-            print(" else {");
-            indent += 1;
-            for(Ast.Statement elseStmt : ast.getElseStatements()){
-                newline(indent);
-                print(elseStmt);
-            }
-            indent -= 1;
-            newline(indent - 1);
-            print("}");
+            print(" else");
+            printBracedBlock(ast.getElseStatements());
         }
-        indent = past_indent;
         return null;
     }
 
     @Override
     public Void visit(Ast.Statement.Switch ast) {
-        int prev_indent = indent;
-        print("switch (", ast.getCondition(), ") {");
-        indent++;
-        for(Ast.Statement.Case cs : ast.getCases()){
-            newline(indent);
-            print(cs);
-        }
-        indent = prev_indent;
-        newline(indent);
-        print("}");
-
+        print("switch (", ast.getCondition(), ")");
+        printBracedBlock(ast.getCases());
         return null;
     }
 
     @Override
     public Void visit(Ast.Statement.Case ast) {
-        int prev_indent = indent;
         if(ast.getValue().isPresent()) {
             print("case ", ast.getValue().get(), ":");
-            indent++;
-            for (Ast.Statement csStmt : ast.getStatements()) {
-                newline(indent);
-                print(csStmt);
-            }
-            newline(indent);
+            printBlock(ast.getStatements());
+            newline(indent + 1);
             print("break;");
         }
         else{
             print("default:");
-            indent++;
-            for (Ast.Statement csStmt : ast.getStatements()) {
-                newline(indent);
-                print(csStmt);
-
-            }
+            printBlock(ast.getStatements());
         }
-
-        indent = prev_indent;
         return null;
     }
 
 
    @Override
    public Void visit(Ast.Statement.While ast) {
-        int prev_indent = indent;
-        print("while (", ast.getCondition(), ") {");
-        indent++;
-        for(Ast.Statement stmt : ast.getStatements()){
-            newline(indent);
-            print(stmt);
-
-        }
-        indent = prev_indent;
-        newline(indent);
-        print("}");
+        print("while (", ast.getCondition(), ")");
+        printBracedBlock(ast.getStatements());
         return null;
     }
 
@@ -245,6 +240,9 @@ public final class Generator implements Ast.Visitor<Void> {
         }
         else if(ast.getType() == Environment.Type.CHARACTER){
             print("\'", cleanEscapes(((Character)ast.getLiteral()).toString()), "\'");
+        }
+        else if (ast.getType() == Environment.Type.NIL) {
+            print("null");
         }
         else{
             print(ast.getLiteral());
@@ -281,13 +279,7 @@ public final class Generator implements Ast.Visitor<Void> {
     public Void visit(Ast.Expression.Function ast) {
         Environment.Function function = ast.getFunction();
         print(function.getJvmName(), '(');
-        List<Ast.Expression> args = ast.getArguments();
-        for (int i = 0; i < args.size(); i++) {
-            print(args.get(i));
-            if (i != args.size() - 1) {
-                print(',');
-            }
-        }
+        printCommaSeperatedList(ast.getArguments());
         print(')');
         return null;
     }
@@ -295,13 +287,7 @@ public final class Generator implements Ast.Visitor<Void> {
     @Override
     public Void visit(Ast.Expression.PlcList ast) {
         print('{');
-        List<Ast.Expression> vals = ast.getValues();
-        for (int i = 0; i < vals.size(); i++) {
-            print(vals.get(i));
-            if (i != vals.size() - 1) {
-                print(", ");
-            }
-        }
+        printCommaSeperatedList(ast.getValues());
         print('}');
         return null;
     }
