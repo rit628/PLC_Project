@@ -1,0 +1,7 @@
+VAR x: Integer;
+VAR y: Decimal;
+VAR z: String;
+FUN f(): Integer DO RETURN x; END
+FUN g(): Decimal DO RETURN y; END
+FUN h(): String DO RETURN z; END
+FUN main(): Integer DO END
